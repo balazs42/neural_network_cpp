@@ -19,7 +19,7 @@
 // loadFromFile() member function, then you can use your network.
 
 // This is an example of how you could use this repository
-int main(void)
+int main()
 {
 	try
 	{

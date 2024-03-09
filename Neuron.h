@@ -40,6 +40,10 @@ public:
 	// Overriding operator=, so copiing all parameters
 	Neuron operator=(const Neuron& rhs)
 	{
+		if (this == &rhs) // Check for self-assignment
+			return *this;
+
+		// Copiing data
 		activation = rhs.activation;
 		bias = rhs.bias;
 		error = rhs.error;
@@ -53,6 +57,9 @@ public:
 
 		activationFunction = rhs.activationFunction;
 		derivativeActivationFunction = rhs.derivativeActivationFunction;
+
+		// Returning object
+		return *this;
 	}
 
 	// Getter functions
@@ -94,6 +101,10 @@ public:
 	double activateNeuron() { return (this->activationFunction)(z); }
 	double activateNeuron(double parameter) { return (this->activationFunction)(parameter); }
 	double activateDerivative(double parameter) { return (this->activationFunction)(parameter); }
+
+	string getNeuronData()
+	{
+	}
 };
 
 #endif /*_NEURON_H_*/

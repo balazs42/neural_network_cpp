@@ -38,7 +38,7 @@ public:
 	{ 
 		Neuron* newLayer = new Neuron[parameter];
 
-		// Getting which value is bigger
+		// Getting which value is bigger old size or new parameter
 		unsigned max = (numNeurons - parameter > 0) ? parameter : numNeurons;
 
 		// Setting all neurons to be default

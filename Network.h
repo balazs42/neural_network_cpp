@@ -2,6 +2,9 @@
 #define _NETWORK_H_
 
 #include <vector>	// Include for vector container
+#include <algorithm>// Include for random shuffle and etc.
+
+
 #include "Layer.h"	// Include for Layer class
 #include "Edge.h"	// Include for Edge class
 

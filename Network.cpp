@@ -16,6 +16,7 @@ void Network::randInitEdges()
     // Seed the random number generator
     srand(time(nullptr));
 
+    // Iterating through each edge and setting it to a random values
     for (unsigned i = 0; i < layers.size() - 1; i++)
         for (unsigned j = 0; j < layers[i].getNumberOfNeurons(); j++)
             for (unsigned k = 0; k < layers[i + 1].getNumberOfNeurons(); k++)
@@ -36,11 +37,13 @@ void Network::randInitNeurons()
 /****** File handling functions ********/
 /***************************************/
 
+// Loading network from a file
 void Network::loadNetworkFromFile(const string& route)
 {
-
+    
 }
 
+// Saving network to a file
 void Network::saveNetworkToFile(const string& route)
 {
 
@@ -394,25 +397,35 @@ void Network::gradientDescent(vector<T1*> inArr, vector<unsigned> inNum, vector<
 template <typename T1, typename T2>
 void Network::minibatchGradientDescent(vector<T1*> inArr, vector<unsigned> inNum, vector<T2*> expArr, vector<unsigned> expNum, unsigned epochNum)
 {
-    unsigned epochs = 0;
-
-    // Doing epoch number of iterations
-    while (epochs < epochNum)
+    for (unsigned epoch = 0; epoch < epochNum; ++epoch) 
     {
-        gradientDescent(inArr, inNum, expArr, expNum, epochNum);
+        // Shuffle the training data for each epoch
+        std::random_shuffle(inArr.begin(), inArr.end());
 
-        epochs++;
+        // Process mini-batches
+        for (unsigned i = 0; i < trainingData.size(); i += miniBatchSize) 
+        {
+            // Get the mini-batch
+            std::vector<Data> miniBatch(trainingData.begin() + i, trainingData.begin() + std::min(i + miniBatchSize, trainingData.size()));
+
+            // Update network parameters using the mini-batch
+            updateMiniBatch(miniBatch, learningRate);
+        }
     }
 }
 
-// Training the networks 
-// Parameters:
-// s : method selector string
-// inArr : vector of input arrays (must be numerical type)
-// inNum : vector of the lengths of input arrays
-// expArr : vector of expected value arrays (must be numerical type)
-// expNum : vector of expected array lengths
-// epoch : number of epoch for training
+/**
+ * Trains the neural network using the specified training method and parameters.
+ *
+ * @param s Method selector string indicating the training algorithm to be used.
+ * @param inArr Vector of input arrays. Each array must be of numerical type.
+ * @param inNum Vector containing the lengths of the input arrays.
+ * @param expArr Vector of expected value arrays. Each array must be of numerical type.
+ * @param expNum Vector containing the lengths of the expected value arrays.
+ * @param epochNum Number of epochs for training.
+ * @tparam T1 Type of the input array elements.
+ * @tparam T2 Type of the expected value array elements.
+ */
 template <typename T1, typename T2>
 void Network::trainNetwork(const string& s, vector<T1*> inArr, vector<unsigned> inNum, vector<T2*> expArr, vector<unsigned> expNum, unsigned epochNum)
 {
