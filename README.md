@@ -1,5 +1,8 @@
 Provided by an MSC EE student of Budapest University of Technology and Economics
 
+The implementation is based on 3Blue1Brown's article on the topic: https://www.3blue1brown.com/lessons/backpropagation-calculus
+My take on the backpropagation algorithm, classes used for the project are highly based on the article.
+
  Currently this project is in this state: WORK IN PROGRESS!
  Neuron, Edge, Layer and Network classes are implemented, but 
  they are not tested and not complete!
