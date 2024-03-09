@@ -10,8 +10,8 @@ My take on the backpropagation algorithm, classes used for the project are highl
  and bug fix ideas, please feel free to conact me through the github repo
 
  The main concept is that the user only has to do 2 things:
- -Bring their input to some kind of numerical array
- -Bring their expected values to some kind of numerical array
+ -Bring their input to some kind of numerical array.
+ -Bring their expected values to some kind of numerical array.
  It is NOT necessary that your expected and input arrays to be 
  the same numerical type!
  Then train the network. Hopefully it will learn the pattern provided by your data
@@ -19,6 +19,8 @@ My take on the backpropagation algorithm, classes used for the project are highl
  loadFromFile() member function, then you can use your network.
 
  This is an example of how you could use this repository
+
+ 
 int main(void)
 {
 	try
