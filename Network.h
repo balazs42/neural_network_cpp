@@ -108,8 +108,8 @@ public:
 	/****** File handling functions ********/
 	/***************************************/
 
+	void saveNetworkToFile(const string& route);
 	void loadNetworkFromFile(const string& route);
-
 
 	/***************************************/
 	/********* Training functions **********/

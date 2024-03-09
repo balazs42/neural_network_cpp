@@ -41,6 +41,11 @@ void Network::loadNetworkFromFile(const string& route)
 
 }
 
+void Network::saveNetworkToFile(const string& route)
+{
+
+}
+
 /***************************************/
 /******* Normalizing functions *********/
 /***************************************/
