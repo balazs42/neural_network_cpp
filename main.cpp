@@ -39,6 +39,17 @@ int main(void)
 		// to reinit the network you have the possibility
 		network.randInitNetwork();
 
+		// You can set different activation functions to the layers
+		// you cannot pass more strings then the number of layers
+		vector<string> activationFunctions = { "Sigmoid", "Relu", "Sigmoid", "Tanh" };
+
+		// You can set all the network to 1 specific activation function
+		network.setAllActivationFunctions("Relu");
+
+		// Or by passing the vector as an argument, you can set different
+		// activation functions to different layers
+		network.setLayerActivationFunctions(activationFunctions);
+
 		//-----------------------------------//
 
 		// This is an artifically created input array, you have to bring your input 
