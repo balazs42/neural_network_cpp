@@ -214,18 +214,23 @@ private:
 	/********* Training functions **********/
 	/***************************************/
 
+	// Implementation of stochstic gradient descent method
 	template <typename T1, typename T2>
 	void stochasticGradientDescent(vector<T1*> inArr, vector<unsigned> inNum, vector<T2*> expArr, vector<unsigned> expNum, unsigned epochNum);
 
+	// Implementation of gradient descent method
 	template <typename T1, typename T2>
 	void gradientDescent(vector<T1*> inArr, vector<unsigned> inNum, vector<T2*> expArr, vector<unsigned> expNum, unsigned epochNum);
 
+	// Implementation of the minibatch gradient descent method
 	template <typename T1, typename T2>
 	void minibatchGradientDescent(vector<T1*> inArr, vector<unsigned> inNum, vector<T2*> expArr, vector<unsigned> expNum, unsigned epochNum);
 
 public:
+
+	// Train network function, that should be called, by the user, with specific arguments
 	template <typename T1, typename T2>
-	void trainNetwork(const string& s, vector<T1*> inArr, vector<unsigned> inNum, vector<T2*> expArr, vector<unsigned> expNum, unsigned epochNum);
+	static void trainNetwork(const string& s, vector<T1*> inArr, vector<unsigned> inNum, vector<T2*> expArr, vector<unsigned> expNum, unsigned epochNum);
 };
 
 #endif /*_NETWORK_H_*/

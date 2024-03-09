@@ -585,7 +585,7 @@ void Network::adamaxOptimization(double learningRate, double beta1, double beta2
  * @tparam T2 Type of the expected value array elements.
  */
 template <typename T1, typename T2>
-void Network::trainNetwork(const string& s, vector<T1*> inArr, vector<unsigned> inNum, vector<T2*> expArr, vector<unsigned> expNum, unsigned epochNum)
+static void Network::trainNetwork(const string& s, vector<T1*> inArr, vector<unsigned> inNum, vector<T2*> expArr, vector<unsigned> expNum, unsigned epochNum)
 {
     if (s == "Minibatch" || s == "minibatch" || s == "mb")
     {
