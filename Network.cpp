@@ -33,6 +33,15 @@ void Network::randInitNeurons()
 }
 
 /***************************************/
+/****** File handling functions ********/
+/***************************************/
+
+void Network::loadNetworkFromFile(const string& route)
+{
+
+}
+
+/***************************************/
 /******* Normalizing functions *********/
 /***************************************/
 

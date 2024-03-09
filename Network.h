@@ -105,6 +105,13 @@ public:
 	void randInitNetwork() { randInitEdges(); randInitNeurons(); }
 
 	/***************************************/
+	/****** File handling functions ********/
+	/***************************************/
+
+	void loadNetworkFromFile(const string& route);
+
+
+	/***************************************/
 	/********* Training functions **********/
 	/***************************************/
 
