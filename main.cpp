@@ -89,13 +89,12 @@ int main()
 
 		// Training network, with the provided data
 		network.trainNetwork("GradientDescent",												// Training method type
-							 inputArr,														// Your created input vector of arrays
-							 { inSize, inSize, inSize, inSize },							// Number of elements in each input array
-							 expArr,														// Your expected vector of arrays
-							 { expectedSize, expectedSize, expectedSize, expectedSize },	// Number of elements in the expected vector of arrays
-							 10000															// Number of epochs
+			inputArr,													// Your created input vector of arrays
+			{ inSize, inSize, inSize, inSize },							// Number of elements in each input array
+			expArr,														// Your expected vector of arrays
+			{ expectedSize, expectedSize, expectedSize, expectedSize },	// Number of elements in the expected vector of arrays
+			10000														// Number of epochs
 		);
-
 	}
 	catch (std::out_of_range)
 	{

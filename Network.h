@@ -192,7 +192,6 @@ private:
 	template <typename T1, typename T2>
 	void backPropagation(T1* inputArr, unsigned inNum, T2* expectedArr, unsigned expNum);
 
-public:
 	// Normalizing functions
 	template<typename T>
 	double* normalizeInput(T* arr, unsigned num) { return normalizeData(arr, num); }
@@ -200,7 +199,6 @@ public:
 	template<typename T>
 	double* normalizeExpected(T* arr, unsigned num) { return normalizeData(arr, num); }
 
-private:
 	/***************************************/
 	/******* Optimization functions ********/
 	/***************************************/
