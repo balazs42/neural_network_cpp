@@ -20,15 +20,68 @@ class Network
 private:
 	vector<Layer> layers;	// Layers in the network
 	vector<Edge**> edges;	// Edges in the network
-	bool useAdam;
+
+	// Optimization techniques
+	bool useRmspropOptimization;
+	bool useAdagradOptimization;
+	bool useAdadeltaOptimization;
+	bool useNagOptimization;
+	bool useAdamaxOptimization;
+	bool useAdamOptimization;
 
 public:
-	Network() : layers(), edges(), useAdam(false) {}
+	Network() : layers(), edges(), 
+		useRmspropOptimization(false), useAdagradOptimization(false), useAdadeltaOptimization(false),
+		useNagOptimization(false), useAdamaxOptimization(false), useAdamOptimization(false) {}
 
 	// Vector of numbers of neurons in each layer, from left to right should be passed, and if adam optimization should be used
-	Network(vector<unsigned> numNeurons, bool adam)
+	Network(vector<unsigned> numNeurons, const string& opt)
 	{
-		useAdam = adam;
+		// Choosing optimization technique
+		if (opt == "RMS" || opt == "rms")
+		{
+			useRmspropOptimization = true;
+		}
+		else if (opt == "Adagrad" || opt == "adargad")
+		{
+			useAdagradOptimization = true;
+		}
+		else if (opt == "Adadelta" || opt == "adadelta")
+		{
+			useAdadeltaOptimization = true;
+		}
+		else if (opt == "NAG" || opt == "nag")
+		{
+			useNagOptimization = true;
+		}
+		else if (opt == "Adamax" || opt == "adamax")
+		{
+			useAdamaxOptimization = true;
+		}
+		else if (opt == "Adam" || opt == "adam")
+		{
+			useAdamOptimization = true;
+		}
+		else if (opt == "none" || opt == "NONE" || opt == "None" || opt == "n")
+		{
+			useRmspropOptimization = false;
+			useAdagradOptimization = false;
+			useAdadeltaOptimization = false;
+			useNagOptimization = false;
+			useAdamaxOptimization = false;
+			useAdamOptimization = false;
+		}
+		else
+		{
+			throw out_of_range("Invalid optimization technique, none will be used, check code if invalid.");
+			useRmspropOptimization = false;
+			useAdagradOptimization = false;
+			useAdadeltaOptimization = false;
+			useNagOptimization = false;
+			useAdamaxOptimization = false;
+			useAdamOptimization = false;
+		}
+
 
 		// Checking to see if at least we have at least 2 layers
 		if (numNeurons.size() < 2)
@@ -148,8 +201,20 @@ public:
 	double* normalizeExpected(T* arr, unsigned num) { return normalizeData(arr, num); }
 
 private:
-	// Training functions
+	/***************************************/
+	/******* Optimization functions ********/
+	/***************************************/
+
+	void rmspropOptimization(double learningRate = 0.001f, double decayRate = 0.9f, double epsilon = 1e-8f);
+	void adagradOptimization(double learningRate = 0.01f, double epsilon = 1e-8f);
+	void adadeltaOptimization(double decayRate = 0.9f, double epsilon = 1e-8f);
+	void nagOptimization(double learningRate = 0.001f, double momentum = 0.9f);
+	void adamaxOptimization(double learningRate = 0.002f, double beta1 = 0.9f, double beta2 = 0.999f, double epsilon = 1e-8f);
 	void adamOptimization(double learningRate = 0.001f, double beta1 = 0.9f, double beta2 = 0.999f, double epsilon = 1e-8f);
+
+	/***************************************/
+	/********* Training functions **********/
+	/***************************************/
 
 	template <typename T1, typename T2>
 	void stochasticGradientDescent(vector<T1*> inArr, vector<unsigned> inNum, vector<T2*> expArr, vector<unsigned> expNum, unsigned epochNum);

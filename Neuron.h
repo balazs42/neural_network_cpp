@@ -26,6 +26,9 @@ private:
 	double firstMoment;			// First moment estimate (Adam optimization)
 	double secondMoment;		// Second moment estimate (Adam optimization)
 
+	double squaredGradientSum;    // Accumulated squared gradients for Adagrad
+	double squaredGradientAvg;    // Moving average of squared gradients for AdaDelta
+
 	typedef double (*FunctionPointer)(double);// Function pointer type
 
 	// Activation function pointers
@@ -35,7 +38,8 @@ private:
 public:
 	Neuron() : activation(0.0f), bias(0.0f), error(0.0f), z(0.0f), activationFunction(&Sigmoid),
 		derivativeActivationFunction(&DSigmoid), deltaActivation(0.0f), deltaBias(0.0f), 
-		firstMoment(0.0f), secondMoment(0.0f) {}
+		firstMoment(0.0f), secondMoment(0.0f),
+		squaredGradientAvg(0.0f), squaredGradientSum(0.0f){}
 
 	// Overriding operator=, so copiing all parameters
 	Neuron operator=(const Neuron& rhs)
@@ -63,14 +67,17 @@ public:
 	}
 
 	// Getter functions
-	double getActivation() { return activation; }
-	double getBias() { return bias; }
-	double getError() { return error; }
-	double getDeltaActivation() { return deltaActivation; }
-	double getDeltaBias() { return deltaBias; }
-	double getZ() { return z; }
-	double getFirstMoment() { return firstMoment; }
-	double getSecondMoment() { return secondMoment; }
+	double getActivation() const { return activation; }
+	double getBias() const { return bias; }
+	double getError() const { return error; }
+	double getDeltaActivation() const { return deltaActivation; }
+	double getDeltaBias() const { return deltaBias; }
+	double getZ() const{ return z; }
+	double getFirstMoment() const { return firstMoment; }
+	double getSecondMoment() const { return secondMoment; }
+	double getSquaredGradientSum() const { return squaredGradientSum; }
+	double getSquaredGradientAvg() const { return squaredGradientAvg; }
+
 
 	// Setter functions
 	void setActivation(double parameter) { activation = parameter; }
@@ -81,6 +88,8 @@ public:
 	void setZ(double parameter) { z = parameter; }
 	void setFirstMoment(double parameter) { firstMoment = parameter; }
 	void setSecondMoment(double parameter) { secondMoment = parameter; }
+	void setSquaredGradientSum(double parameter) { squaredGradientSum = parameter; }
+	void setSquaredGradientAvg(double parameter) { squaredGradientAvg = parameter; }
 
 private:
 	// Activation functions

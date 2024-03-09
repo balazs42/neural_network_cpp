@@ -32,7 +32,7 @@ int main()
 		vector<unsigned> layerSizes = { inSize, 50, 50, expectedSize };
 
 		// Create network object, with the specified 
-		Network network(layerSizes, false);
+		Network network(layerSizes, "adam");
 
 		// You can randinit all edges and biases, in the network, although it is not
 		// necessary, the constructor already does it, but if for some reason you want

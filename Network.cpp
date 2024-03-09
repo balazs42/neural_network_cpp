@@ -166,7 +166,8 @@ void Network::calculateError(T* expectedArray, unsigned num)
 
     Neuron* lastLayer = layers[layers.size() - 1].getNumberOfNeurons();
 
-    // Calculating error in final layer
+    // Parallelize error calculation for each neuron in the last layer
+#pragma omp parallel for
     for (unsigned i = 0; i < num; i++)
     {
         // Cost function is: E = (a^L - y)^2, d/dE = 2 * (a^L - y) , where y is the expected value at a given index, and a^L is the L-th layer's activation at the given index
@@ -214,13 +215,12 @@ void Network::calculateDeltaBias()
         // Current layer's neuron array
         Neuron* thisLayer = layers[i].getThisLayer();
 
-        for (unsigned j = 0; j < layers[i].getNumberOfNeurons(); j++)
+        // Parallelize delta bias calculation for each neuron in the current layer
+#pragma omp parallel for
+        for (unsigned i = 0; i < layers[i].getNumberOfNeurons(); ++i)
         {
-            // dBias =                      d/dActFun(z)                 *  current neuron error     
-            dBias = thisLayer[j].activateDerivative(thisLayer[j].getZ()) * thisLayer[j].getError();
-            
-            // Setting calculated delta bias
-            thisLayer[j].setDeltaBias(dBias);
+            double deltaBias = thisLayer[i].getError() * thisLayer[i].activateDerivative(thisLayer[i].getZ());
+            thisLayer[i].setDeltaBias(deltaBias);
         }
     }
 }
@@ -322,39 +322,48 @@ void Network::backPropagation(T1* inputArr, unsigned inNum, T2* expectedArr, uns
     // Setting new parameters to the network
     setNewParameters();
 
-    if (useAdam)
+    if (useRmspropOptimization)
+        rmspropOptimization();
+    if (useAdagradOptimization)
+        adagradOptimization();
+    if (useAdadeltaOptimization)
+        adadeltaOptimization();
+    if (useNagOptimization)
+        nagOptimization();
+    if (useAdamaxOptimization)
+        adamaxOptimization();
+    if (useAdamOptimization)
         adamOptimization();
 }
 
-// Update weights and biases using Adam optimization
-void Network::adamOptimization(double learningRate, double beta1, double beta2, double epsilon)
+// Update weights and biases using Adam optimization (parallelized)
+void Network::adamOptimization(double learningRate, double beta1, double beta2, double epsilon) 
 {
     // Initialize Adam parameters
     double beta1Power = 1.0;
     double beta2Power = 1.0;
 
     // Perform Adam optimization for each neuron's bias
-    // -------------------------------------------------------------------
-    // #pragma omp parallel for schedule(dynamic) instructs the compiler 
-    // to parallelize the following loop using OpenMP, with the iterations 
-    // dynamically scheduled among the threads to achieve workload balance.
-    // -------------------------------------------------------------------
-#pragma omp parallel for schedule(dynamic)
+#pragma omp parallel for collapse(2) schedule(dynamic)
     for (unsigned i = 1; i < layers.size(); i++) 
     {
         Neuron* thisLayer = layers[i].getThisLayer();
         for (unsigned j = 0; j < layers[i].getNumberOfNeurons(); j++) 
         {
             // Update first and second moments
-            thisLayer[j].setFirstMoment(beta1 * thisLayer[j].getFirstMoment() + (1 - beta1) * thisLayer[j].getDeltaBias());
-            thisLayer[j].setSecondMoment(beta2 * thisLayer[j].getSecondMoment() + (1 - beta2) * thisLayer[j].getDeltaBias() * thisLayer[j].getDeltaBias());
+            double deltaBias = thisLayer[j].getDeltaBias();
+            double firstMoment = thisLayer[j].getFirstMoment();
+            double secondMoment = thisLayer[j].getSecondMoment();
+            thisLayer[j].setFirstMoment(beta1 * firstMoment + (1 - beta1) * deltaBias);
+            thisLayer[j].setSecondMoment(beta2 * secondMoment + (1 - beta2) * deltaBias * deltaBias);
 
             // Bias correction
             double firstMomentCorrected = thisLayer[j].getFirstMoment() / (1 - beta1Power);
             double secondMomentCorrected = thisLayer[j].getSecondMoment() / (1 - beta2Power);
 
             // Update bias using the learning rate, firstMomentCorrected, secondMomentCorrected, and epsilon
-            thisLayer[j].setBias(thisLayer[j].getBias() - learningRate * firstMomentCorrected / (std::sqrt(secondMomentCorrected) + epsilon));
+            double updatedBias = thisLayer[j].getBias() - learningRate * firstMomentCorrected / (sqrt(secondMomentCorrected) + epsilon);
+            thisLayer[j].setBias(updatedBias);
         }
     }
 
@@ -366,53 +375,202 @@ void Network::adamOptimization(double learningRate, double beta1, double beta2, 
 template <typename T1, typename T2>
 void Network::stochasticGradientDescent(vector<T1*> inArr, vector<unsigned> inNum, vector<T2*> expArr, vector<unsigned> expNum, unsigned epochNum)
 {
-
+    // Perform stochastic gradient descent for each epoch
+    for (unsigned epoch = 0; epoch < epochNum; ++epoch)
+    {
+        // Iterate over each training example
+#pragma omp parallel for
+        for (unsigned i = 0; i < inArr.size(); ++i)
+        {
+            // Perform backpropagation and update parameters for each training example
+            backPropagation(inArr[i], inNum[i], expArr[i], expNum[i]);
+        }
+    }
 }
 
-// Gradient descent method for training the network, TODO: modifiable threshhold value, currently 0.1% is the static thrashhold
 template <typename T1, typename T2>
 void Network::gradientDescent(vector<T1*> inArr, vector<unsigned> inNum, vector<T2*> expArr, vector<unsigned> expNum, unsigned epochNum)
 {
-    const double thrashHold = 0.001f;
-    double error = 0.0f;
-
-    // TODO: modifiable thrashhold
-
-    while (error > thrashHold)
+    // Perform gradient descent for each epoch
+    for (unsigned epoch = 0; epoch < epochNum; ++epoch)
     {
-        error = 0.0f;
-
-        // Completing full training on given data arrays
-        for (unsigned i = 0; i < inArr.size(); i++)
-            backPropagation(inArr[i], inNum[i], expArr[i], expNum[i]);
-        
-        // Checking of the networks error rate is lower then the given thrashhold
-        Neuron* lastLayer = layers[layers.size() - 1].getThisLayer();
-
-        for (unsigned i = 0; i < layers[layers.size() - 1].getNumberOfNeurons(); i++)
-            error += lastLayer[i].getError();
+        // Perform backpropagation and update parameters for the entire dataset
+        backPropagation(inArr, inNum, expArr, expNum);
     }
 }
 
 template <typename T1, typename T2>
 void Network::minibatchGradientDescent(vector<T1*> inArr, vector<unsigned> inNum, vector<T2*> expArr, vector<unsigned> expNum, unsigned epochNum)
 {
-    for (unsigned epoch = 0; epoch < epochNum; ++epoch) 
+    // Define the minibatch size (e.g., 32)
+    const unsigned minibatchSize = 32;
+    const unsigned numExamples = inArr.size();
+
+    // Perform minibatch gradient descent for each epoch
+    for (unsigned epoch = 0; epoch < epochNum; ++epoch)
     {
-        // Shuffle the training data for each epoch
-        std::random_shuffle(inArr.begin(), inArr.end());
-
-        // Process mini-batches
-        for (unsigned i = 0; i < trainingData.size(); i += miniBatchSize) 
+        // Iterate over the training examples in minibatches
+#pragma omp parallel for
+        for (unsigned startIdx = 0; startIdx < numExamples; startIdx += minibatchSize)
         {
-            // Get the mini-batch
-            std::vector<Data> miniBatch(trainingData.begin() + i, trainingData.begin() + std::min(i + miniBatchSize, trainingData.size()));
+            unsigned endIdx = min(startIdx + minibatchSize, numExamples);
+            // Extract the minibatch
+            vector<T1*> minibatchInArr(inArr.begin() + startIdx, inArr.begin() + endIdx);
+            vector<unsigned> minibatchInNum(inNum.begin() + startIdx, inNum.begin() + endIdx);
+            vector<T2*> minibatchExpArr(expArr.begin() + startIdx, expArr.begin() + endIdx);
+            vector<unsigned> minibatchExpNum(expNum.begin() + startIdx, expNum.begin() + endIdx);
 
-            // Update network parameters using the mini-batch
-            updateMiniBatch(miniBatch, learningRate);
+            // Perform backpropagation and update parameters for the minibatch
+            backPropagation(minibatchInArr, minibatchInNum, minibatchExpArr, minibatchExpNum);
         }
     }
 }
+
+/***************************************/
+/******* Optimization functions ********/
+/***************************************/
+
+// Update weights and biases using RMSProp optimization
+void Network::rmspropOptimization(double learningRate, double decayRate, double epsilon) 
+{
+    // Iterate over each layer and neuron
+    for (unsigned i = 1; i < layers.size(); i++) {
+        Neuron* thisLayer = layers[i].getThisLayer();
+        for (unsigned j = 0; j < layers[i].getNumberOfNeurons(); j++) 
+        {
+            // Compute gradients
+            double deltaBias = thisLayer[j].getDeltaBias();
+
+            // Update moving average of squared gradients
+            double squaredGradient = deltaBias * deltaBias;
+            double squaredGradientAvg = decayRate * thisLayer[j].getSquaredGradientAvg() + (1 - decayRate) * squaredGradient;
+            thisLayer[j].setSquaredGradientAvg(squaredGradientAvg);
+
+            // Update bias using the learning rate and scaled gradient
+            double scaleFactor = learningRate / (sqrt(squaredGradientAvg) + epsilon);
+            double updatedBias = thisLayer[j].getBias() - scaleFactor * deltaBias;
+            thisLayer[j].setBias(updatedBias);
+        }
+    }
+}
+
+// Update weights and biases using Adagrad optimization
+void Network::adagradOptimization(double learningRate, double epsilon) 
+{
+    // Iterate over each layer and neuron
+    for (unsigned i = 1; i < layers.size(); i++) 
+    {
+        Neuron* thisLayer = layers[i].getThisLayer();
+        for (unsigned j = 0; j < layers[i].getNumberOfNeurons(); j++) 
+        {
+            // Compute gradients
+            double deltaBias = thisLayer[j].getDeltaBias();
+
+            // Accumulate squared gradients
+            double squaredGradientSum = thisLayer[j].getSquaredGradientSum() + deltaBias * deltaBias;
+            thisLayer[j].setSquaredGradientSum(squaredGradientSum);
+
+            // Update bias using the learning rate and scaled gradient
+            double scaleFactor = learningRate / (sqrt(squaredGradientSum) + epsilon);
+            double updatedBias = thisLayer[j].getBias() - scaleFactor * deltaBias;
+            thisLayer[j].setBias(updatedBias);
+        }
+    }
+}
+
+// Update weights and biases using AdaDelta optimization
+void Network::adadeltaOptimization(double decayRate, double epsilon)
+{
+    // Iterate over each layer and neuron
+    for (unsigned i = 1; i < layers.size(); i++)
+    {
+        Neuron* thisLayer = layers[i].getThisLayer();
+        Edge** edgeArray = edges[i - 1];
+
+        for (unsigned j = 0; j < layers[i].getNumberOfNeurons(); j++)
+        {
+            // Compute gradients
+            double deltaBias = thisLayer[j].getDeltaBias();
+
+            // Update moving average of squared gradients
+            double squaredGradientAvg = decayRate * thisLayer[j].getSquaredGradientAvg() + (1 - decayRate) * deltaBias * deltaBias;
+            thisLayer[j].setSquaredGradientAvg(squaredGradientAvg);
+
+            // Get delta weight average from the corresponding edge
+            double deltaWeightAvg = edgeArray[j]->getDeltaWeightAvg();
+
+            // Compute parameter update
+            double update = -sqrt(deltaWeightAvg + epsilon) / sqrt(squaredGradientAvg + epsilon) * deltaBias;
+
+            // Update weights using AdaDelta update rule
+            double updatedBias = thisLayer[j].getBias() + update;
+            thisLayer[j].setBias(updatedBias);
+        }
+    }
+}
+
+// Update weights and biases using Nesterov Accelerated Gradient (NAG) optimization
+void Network::nagOptimization(double learningRate, double momentum) 
+{
+    // Iterate over each layer and neuron
+    for (unsigned i = 1; i < layers.size(); i++) 
+    {
+        Neuron* thisLayer = layers[i].getThisLayer();
+        for (unsigned j = 0; j < layers[i].getNumberOfNeurons(); j++) 
+        {
+            // Compute gradients
+            double deltaBias = thisLayer[j].getDeltaBias();
+
+            // Update momentum
+            double prevMomentum = thisLayer[j].getFirstMoment();
+            double newMomentum = momentum * prevMomentum + learningRate * deltaBias;
+            thisLayer[j].setFirstMoment(newMomentum);
+
+            // Update bias using NAG update rule
+            double updatedBias = thisLayer[j].getBias() - momentum * prevMomentum + (1 + momentum) * newMomentum;
+            thisLayer[j].setBias(updatedBias);
+        }
+    }
+}
+
+// Update weights and biases using Adamax optimization
+void Network::adamaxOptimization(double learningRate, double beta1, double beta2, double epsilon) 
+{
+    // Initialize beta1Power and beta2Power
+    double beta1Power = 1.0;
+    double beta2Power = 1.0;
+
+    // Iterate over each layer and neuron
+    for (unsigned i = 1; i < layers.size(); i++) 
+    {
+        Neuron* thisLayer = layers[i].getThisLayer();
+        for (unsigned j = 0; j < layers[i].getNumberOfNeurons(); j++) 
+        {
+            // Compute gradients
+            double deltaBias = thisLayer[j].getDeltaBias();
+
+            // Update first and second moments
+            double firstMoment = beta1 * thisLayer[j].getFirstMoment() + (1 - beta1) * deltaBias;
+            double secondMoment = fmax(beta2 * thisLayer[j].getSecondMoment(), fabs(deltaBias));
+
+            // Update bias using the learning rate, firstMoment, secondMoment, and epsilon
+            double updatedBias = thisLayer[j].getBias() - (learningRate / (1 - beta1Power)) * (firstMoment / (secondMoment + epsilon));
+            thisLayer[j].setBias(updatedBias);
+
+            // Update beta1Power and beta2Power
+            beta1Power *= beta1;
+            beta2Power *= beta2;
+
+            // Update first and second moments for the neuron
+            thisLayer[j].setFirstMoment(firstMoment);
+            thisLayer[j].setSecondMoment(secondMoment);
+        }
+    }
+}
+
+/***************************************/
+/********* Training functions **********/
+/***************************************/
 
 /**
  * Trains the neural network using the specified training method and parameters.
