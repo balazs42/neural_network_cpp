@@ -37,14 +37,56 @@ void Network::randInitNeurons()
 /****** File handling functions ********/
 /***************************************/
 
-// Loading network from a file
-void Network::loadNetworkFromFile(const string& route)
+// Save network to file
+void Network::saveNetworkToXML(const string& filename)
 {
-    
-}
+    std::ofstream outFile(filename);
+    if (!outFile.is_open())
+    {
+        std::cerr << "Error: Unable to open file for writing: " << filename << "\n";
+        return;
+    }
 
-// Saving network to a file
-void Network::saveNetworkToFile(const string& route)
+    // Write XML header
+    outFile << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" << "\n";
+    outFile << "<Network>" << "\n";
+
+    //<parameter> layer1NeuronNum layer2NeuronNum ... LayerNNeuronNum OptimizationTechnique</parameter> 
+    outFile << "<parameter> ";
+    for (unsigned i = 0; i < layers.size(); i++)
+        outFile << layers[i].getNumberOfNeurons() << " ";
+
+    // Printing optimization technique
+    string opt = "None";
+    if (useAdadeltaOptimization)
+        opt = "Adadelta";
+    else if (useAdagradOptimization)
+        opt = "Adagrad";
+    else if (useAdamaxOptimization)
+        opt = "Adamax";
+    else if (useNagOptimization)
+        opt = "Nag";
+    else if (useAdamOptimization)
+        opt = "Adam";
+
+    outFile << opt << "\n";
+
+    outFile << "</parameter" << "\n";
+
+    // Save neurons
+    for (unsigned i = 0; i < layers.size(); i++)
+    {
+        Neuron* thisLayer = layers[i].getThisLayer();
+
+        // Saving each neuron
+        for (unsigned j = 0; j < layers[i].getNumberOfNeurons(); j++)
+            thisLayer[j].saveNeuronToXML(outFile);
+    }
+
+    // Saving each edge
+}
+// Load network to previously created network
+void Network::loadNetworkFromXML(const string& route)
 {
 
 }
@@ -322,17 +364,18 @@ void Network::backPropagation(T1* inputArr, unsigned inNum, T2* expectedArr, uns
     // Setting new parameters to the network
     setNewParameters();
 
+    // Using the given optimization techniwue
     if (useRmspropOptimization)
         rmspropOptimization();
-    if (useAdagradOptimization)
+    else if (useAdagradOptimization)
         adagradOptimization();
-    if (useAdadeltaOptimization)
+    else if (useAdadeltaOptimization)
         adadeltaOptimization();
-    if (useNagOptimization)
+    else if (useNagOptimization)
         nagOptimization();
-    if (useAdamaxOptimization)
+    else if (useAdamaxOptimization)
         adamaxOptimization();
-    if (useAdamOptimization)
+    else if (useAdamOptimization)
         adamOptimization();
 }
 
@@ -585,7 +628,7 @@ void Network::adamaxOptimization(double learningRate, double beta1, double beta2
  * @tparam T2 Type of the expected value array elements.
  */
 template <typename T1, typename T2>
-static void Network::trainNetwork(const string& s, vector<T1*> inArr, vector<unsigned> inNum, vector<T2*> expArr, vector<unsigned> expNum, unsigned epochNum)
+static void Network::trainNetwork(const std::string& s, std::vector<T1*> inArr, std::vector<unsigned> inNum, std::vector<T2*> expArr, std::vector<unsigned> expNum, unsigned epochNum)
 {
     if (s == "Minibatch" || s == "minibatch" || s == "mb")
     {

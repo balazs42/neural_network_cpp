@@ -64,6 +64,13 @@ int main()
 		// Creating input vector of frames
 		vector<unsigned*> inputArr;
 
+		// Creating size arra
+		vector<unsigned> inArrSizes;
+		inArrSizes.push_back(4);
+		inArrSizes.push_back(4);
+		inArrSizes.push_back(4);
+		inArrSizes.push_back(4);
+
 		// Adding frames to input array
 		inputArr.push_back(firstFrame);
 		inputArr.push_back(secondFrame);
@@ -85,16 +92,17 @@ int main()
 		expArr.push_back(thirdExpected);
 		expArr.push_back(fourthExpected);
 
+		// Creating output array sizes
+		vector<unsigned> expArrSizes;
+		expArrSizes.push_back(10);
+		expArrSizes.push_back(10);
+		expArrSizes.push_back(10);
+		expArrSizes.push_back(10);
+
 		//-----------------------------------//
 
 		// Training network, with the provided data
-		network.trainNetwork("GradientDescent",												// Training method type
-			inputArr,													// Your created input vector of arrays
-			{ inSize, inSize, inSize, inSize },							// Number of elements in each input array
-			expArr,														// Your expected vector of arrays
-			{ expectedSize, expectedSize, expectedSize, expectedSize },	// Number of elements in the expected vector of arrays
-			10000														// Number of epochs
-		);
+		//network.trainNetwork(inputArr, inArrSizes, expArr, expArrSizes);
 	}
 	catch (std::out_of_range)
 	{

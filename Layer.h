@@ -38,15 +38,12 @@ public:
 	{ 
 		Neuron* newLayer = new Neuron[parameter];
 
-		// Getting which value is bigger old size or new parameter
-		unsigned max = (numNeurons - parameter > 0) ? parameter : numNeurons;
-
 		// Setting all neurons to be default
 		for (unsigned i = 0; i < parameter; i++)
 			newLayer[i] = Neuron();
 
 		// Copiing old data
-		for (unsigned i = 0; i < max; i++)
+		for (unsigned i = 0; i < numNeurons || i < parameter; i++)
 			newLayer[i] = neurons[i];
 
 		// Free previously allocated memory

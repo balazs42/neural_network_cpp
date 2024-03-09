@@ -1,6 +1,12 @@
 #ifndef _EDGE_H_
 #define _EDGE_H_
 
+#include <iostream>
+#include <fstream>
+#include <string>
+
+using std::string;
+
 class Edge 
 {
 private:
@@ -23,6 +29,15 @@ public:
 	void setError(double parameter) { error = parameter; }
 	void setDeltaWeight(double parameter) { deltaWeight = parameter; }
 	void setDeltaWeightAvg(double avg) { deltaWeightAvg = avg; }
+
+	void saveEdgeToXML(std::ofstream& outFile) 
+	{
+		// Write XML tags to represent edge properties
+		outFile << "<Edge>" << std::endl;
+		outFile << "    <Weight>" << weight << "</Weight>" << std::endl;
+		// Add more properties as needed
+		outFile << "</Edge>" << std::endl;
+	}
 };
 
 #endif /*_EDGE_H_*/

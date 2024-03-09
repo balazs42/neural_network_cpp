@@ -4,6 +4,8 @@
 #include <vector>	// Include for vector container
 #include <algorithm>// Include for random shuffle and etc.
 
+#include <iostream>
+#include <string>
 
 #include "Layer.h"	// Include for Layer class
 #include "Edge.h"	// Include for Edge class
@@ -14,6 +16,7 @@
 #include <omp.h>	// Include for OMP paralellization
 
 using std::vector;
+using std::string;
 
 class Network
 {
@@ -163,9 +166,9 @@ public:
 	/***************************************/
 	/****** File handling functions ********/
 	/***************************************/
-
-	void saveNetworkToFile(const string& route);
-	void loadNetworkFromFile(const string& route);
+private:
+	void saveNetworkToXML(const string& filename);
+	void loadNetworkFromXML(const string& filename);
 
 	/***************************************/
 	/********* Training functions **********/
@@ -226,11 +229,20 @@ private:
 	template <typename T1, typename T2>
 	void minibatchGradientDescent(vector<T1*> inArr, vector<unsigned> inNum, vector<T2*> expArr, vector<unsigned> expNum, unsigned epochNum);
 
+	// Save network to file
+	void saveNetwork(const string& s);
+
 public:
 
 	// Train network function, that should be called, by the user, with specific arguments
 	template <typename T1, typename T2>
-	static void trainNetwork(const string& s, vector<T1*> inArr, vector<unsigned> inNum, vector<T2*> expArr, vector<unsigned> expNum, unsigned epochNum);
+	static void trainNetwork(const std::string& s, std::vector<T1*> inArr, std::vector<unsigned> inNum, std::vector<T2*> expArr, std::vector<unsigned> expNum, unsigned epochNum = 100);
+
+	template <typename T1, typename T2>
+	static void trainNetwork(std::vector<T1*> inArr, std::vector<unsigned> inNum, std::vector<T2*> expArr, std::vector<unsigned> expNum, unsigned epochNum = 100, const std::string& s = "GD");
+
+	// Load network to previously created network
+	void loadNetwork(Network& network, const string& route);
 };
 
 #endif /*_NETWORK_H_*/

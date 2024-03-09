@@ -1,6 +1,10 @@
 #ifndef _NEURON_H_
 #define _NEURON_H_
 
+#include <iostream>
+#include <string>
+#include <fstream>
+
 #include <math.h>	// For activations functions
 #include <iostream>	// String handling
 #include <exception>// Exception handling
@@ -23,8 +27,8 @@ private:
 	double deltaActivation;		// Delta activation calculated from error
 	double deltaBias;			// Delta bias calculated from error
 
-	double firstMoment;			// First moment estimate (Adam optimization)
-	double secondMoment;		// Second moment estimate (Adam optimization)
+	double firstMoment;			// First moment estimate 
+	double secondMoment;		// Second moment estimate
 
 	double squaredGradientSum;    // Accumulated squared gradients for Adagrad
 	double squaredGradientAvg;    // Moving average of squared gradients for AdaDelta
@@ -44,25 +48,25 @@ public:
 	// Overriding operator=, so copiing all parameters
 	Neuron operator=(const Neuron& rhs)
 	{
-		if (this == &rhs) // Check for self-assignment
+		// Check for self-assignment
+		if (this == &rhs)
 			return *this;
 
-		// Copiing data
+		// Copy data
 		activation = rhs.activation;
 		bias = rhs.bias;
 		error = rhs.error;
 		z = rhs.z;
-
 		deltaActivation = rhs.deltaActivation;
 		deltaBias = rhs.deltaBias;
-
 		firstMoment = rhs.firstMoment;
 		secondMoment = rhs.secondMoment;
-
+		squaredGradientSum = rhs.squaredGradientSum;
+		squaredGradientAvg = rhs.squaredGradientAvg;
 		activationFunction = rhs.activationFunction;
 		derivativeActivationFunction = rhs.derivativeActivationFunction;
 
-		// Returning object
+		// Return reference to the left-hand side object
 		return *this;
 	}
 
@@ -111,8 +115,14 @@ public:
 	double activateNeuron(double parameter) { return (this->activationFunction)(parameter); }
 	double activateDerivative(double parameter) { return (this->activationFunction)(parameter); }
 
-	string getNeuronData()
+	void saveNeuronToXML(std::ofstream& outFile) 
 	{
+		// Write XML tags to represent neuron properties
+		outFile << "<Neuron>" << "\n";
+		outFile << "    <Bias>" << bias << "</Bias>" << "\n";
+
+		// Add more properties as needed
+		outFile << "</Neuron>" << "\n";
 	}
 };
 
