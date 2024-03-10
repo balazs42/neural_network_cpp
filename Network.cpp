@@ -422,7 +422,7 @@ void Network::adamOptimization(double learningRate, double beta1, double beta2, 
 }
 
 template <typename T1, typename T2>
-void Network::stochasticGradientDescent(vector<T1*> inArr, vector<unsigned> inNum, vector<T2*> expArr, vector<unsigned> expNum, unsigned epochNum)
+void Network::stochasticGradientDescent(vector<T1*>& inArr, vector<unsigned>& inNum, vector<T2*>& expArr, vector<unsigned>& expNum, unsigned epochNum)
 {
     // Perform stochastic gradient descent for each epoch
     for (unsigned epoch = 0; epoch < epochNum; ++epoch)
@@ -438,7 +438,7 @@ void Network::stochasticGradientDescent(vector<T1*> inArr, vector<unsigned> inNu
 }
 
 template <typename T1, typename T2>
-void Network::gradientDescent(vector<T1*> inArr, vector<unsigned> inNum, vector<T2*> expArr, vector<unsigned> expNum, unsigned epochNum)
+void Network::gradientDescent(vector<T1*>& inArr, vector<unsigned>& inNum, vector<T2*>& expArr, vector<unsigned>& expNum, unsigned epochNum)
 {
     // Perform gradient descent for each epoch
     for (unsigned epoch = 0; epoch < epochNum; ++epoch)
@@ -449,7 +449,7 @@ void Network::gradientDescent(vector<T1*> inArr, vector<unsigned> inNum, vector<
 }
 
 template <typename T1, typename T2>
-void Network::minibatchGradientDescent(vector<T1*> inArr, vector<unsigned> inNum, vector<T2*> expArr, vector<unsigned> expNum, unsigned epochNum)
+void Network::minibatchGradientDescent(vector<T1*>& inArr, vector<unsigned>& inNum, vector<T2*>& expArr, vector<unsigned>& expNum, unsigned epochNum)
 {
     // Define the minibatch size (e.g., 32)
     const unsigned minibatchSize = 32;
@@ -627,17 +627,17 @@ void Network::adamaxOptimization(double learningRate, double beta1, double beta2
     }
 }
 
-// Convert input arrays
+// Converting input arrays
 template <typename T1, typename T2>
-void convertInput(vector<vector<T1>> inArr, vector<vector<T2>> expArr, vector<T1*>& inArrConverted, vector<T2*>& expArrConverted)
+void Network::convertInput(std::vector<std::vector<T1>>& inArr, std::vector<std::vector<T2>>& expArr, std::vector<T1*>& inArrConverted, std::vector<T2*>& expArrConverted)
 {
     // Converting input array
     for (unsigned i = 0; i < inArr.size(); i++)
     {
-        // allocating new memory
-        inArrConverted.push_back(*(new T1[inArr[i].size()]));
+        // Allocating new memory
+        inArrConverted.push_back(new T1[inArr[i].size()]);
 
-        // Copiing data
+        // Copying data
         for (unsigned j = 0; j < inArr[i].size(); j++)
             inArrConverted[i][j] = inArr[i][j];
     }
@@ -645,9 +645,9 @@ void convertInput(vector<vector<T1>> inArr, vector<vector<T2>> expArr, vector<T1
     // Converting expected array
     for (unsigned i = 0; i < expArr.size(); i++)
     {
-        expArrConverted.push_back(*(new T2[inArr[i].size()]));
+        expArrConverted.push_back(new T2[expArr[i].size()]);
 
-        // Copiing data
+        // Copying data
         for (unsigned j = 0; j < expArr[i].size(); j++)
             expArrConverted[i][j] = expArr[i][j];
     }

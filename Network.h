@@ -182,6 +182,8 @@ public:
 	/***************************************/
 	/****** File handling functions ********/
 	/***************************************/
+
+
 private:
 
 	/***************************************/
@@ -227,25 +229,21 @@ private:
 	void adamaxOptimization(double learningRate = 0.002f, double beta1 = 0.9f, double beta2 = 0.999f, double epsilon = 1e-8f);
 	void adamOptimization(double learningRate = 0.001f, double beta1 = 0.9f, double beta2 = 0.999f, double epsilon = 1e-8f);
 
-	/***************************************/
-	/********* Training functions **********/
-	/***************************************/
-
 	// Implementation of stochstic gradient descent method
 	template <typename T1, typename T2>
-	void stochasticGradientDescent(vector<T1*> inArr, vector<unsigned> inNum, vector<T2*> expArr, vector<unsigned> expNum, unsigned epochNum);
+	static void stochasticGradientDescent(vector<T1*>& inArr, vector<unsigned>& inNum, vector<T2*>& expArr, vector<unsigned>& expNum, unsigned epochNum);
 
 	// Implementation of gradient descent method
 	template <typename T1, typename T2>
-	void gradientDescent(vector<T1*> inArr, vector<unsigned> inNum, vector<T2*> expArr, vector<unsigned> expNum, unsigned epochNum);
+	static void gradientDescent(vector<T1*>& inArr, vector<unsigned>& inNum, vector<T2*>& expArr, vector<unsigned>& expNum, unsigned epochNum);
 
 	// Implementation of the minibatch gradient descent method
 	template <typename T1, typename T2>
-	void minibatchGradientDescent(vector<T1*> inArr, vector<unsigned> inNum, vector<T2*> expArr, vector<unsigned> expNum, unsigned epochNum);
+	static void minibatchGradientDescent(vector<T1*>& inArr, vector<unsigned>& inNum, vector<T2*>& expArr, vector<unsigned>& expNum, unsigned epochNum);
 
-	// Convert input arrays
+	// Converting input arrays
 	template <typename T1, typename T2>
-	void convertInput(vector<vector<T1>> inArr, vector<vector<T2>> expArr, vector<T1*>& inArrConverted, vector<T2*>& expArrConverted);
+	void convertInput(std::vector<std::vector<T1>>& inArr, std::vector<std::vector<T2>>& expArr, std::vector<T1*>& inArrConverted, std::vector<T2*>& expArrConverted);
 
 public:
 	
@@ -302,7 +300,7 @@ public:
 		else if (s == "GradientDescent" || s == "GD" || s == "gd")
 		{
 			// Trainging using the gradient descent methdo
-			gradientDescent(convertedInArr, inNum, expArr, convertedExpArr, epochNum);
+			gradientDescent(convertedInArr, inNum, convertedExpArr, expNum, epochNum);
 		}
 		else
 		{
