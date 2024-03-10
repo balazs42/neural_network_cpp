@@ -56,20 +56,13 @@ int main()
 		// to some numerical type array, then pass it to the network.
 
 		// Creating artificial input frames
-		unsigned* firstFrame = new unsigned[inSize] {1, 2, 3, 4};
-		unsigned* secondFrame = new unsigned[inSize] {2, 3, 4, 5};
-		unsigned* thirdFrame = new unsigned[inSize] {10, 9, 8, 11};
-		unsigned* fourthFrame = new unsigned[inSize] {1, 0, 12, 3};
+		vector<unsigned> firstFrame =  {1, 2, 3, 4};
+		vector<unsigned> secondFrame = {2, 3, 4, 5};
+		vector<unsigned> thirdFrame =  {10, 9, 8, 11};
+		vector<unsigned> fourthFrame = {1, 0, 12, 3};
 
 		// Creating input vector of frames
-		vector<unsigned*> inputArr;
-
-		// Creating size arra
-		vector<unsigned> inArrSizes;
-		inArrSizes.push_back(4);
-		inArrSizes.push_back(4);
-		inArrSizes.push_back(4);
-		inArrSizes.push_back(4);
+		vector<vector<unsigned>> inputArr;
 
 		// Adding frames to input array
 		inputArr.push_back(firstFrame);
@@ -80,29 +73,22 @@ int main()
 		//-----------------------------------//
 
 		// Creating artificial expected array
-		unsigned* firstExpected = new unsigned[expectedSize]  {1, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-		unsigned* secondExpected = new unsigned[expectedSize] {0, 0, 1, 0, 0, 0, 0, 0, 0, 0};
-		unsigned* thirdExpected = new unsigned[expectedSize]  {0, 0, 0, 0, 1, 0, 0, 0, 0, 0};
-		unsigned* fourthExpected = new unsigned[expectedSize] {0, 0, 0, 0, 0, 0, 1, 0, 0, 0};
+		vector<unsigned> firstExpected =  {1, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+		vector<unsigned> secondExpected = {0, 0, 1, 0, 0, 0, 0, 0, 0, 0};
+		vector<unsigned> thirdExpected =  {0, 0, 0, 0, 1, 0, 0, 0, 0, 0};
+		vector<unsigned> fourthExpected = {0, 0, 0, 0, 0, 0, 1, 0, 0, 0};
 
-		vector<unsigned*> expArr;
+		vector<vector<unsigned>> expArr;
 
 		expArr.push_back(firstExpected);
 		expArr.push_back(secondExpected);
 		expArr.push_back(thirdExpected);
 		expArr.push_back(fourthExpected);
 
-		// Creating output array sizes
-		vector<unsigned> expArrSizes;
-		expArrSizes.push_back(10);
-		expArrSizes.push_back(10);
-		expArrSizes.push_back(10);
-		expArrSizes.push_back(10);
-
 		//-----------------------------------//
 
 		// Training network, with the provided data
-		//network.trainNetwork(inputArr, inArrSizes, expArr, expArrSizes, 100, "SGD");
+		network.trainNetwork("SGD", inputArr, expArr, 100);
 	}
 	catch (std::out_of_range)
 	{

@@ -243,20 +243,79 @@ private:
 	template <typename T1, typename T2>
 	void minibatchGradientDescent(vector<T1*> inArr, vector<unsigned> inNum, vector<T2*> expArr, vector<unsigned> expNum, unsigned epochNum);
 
+	// Convert input arrays
+	template <typename T1, typename T2>
+	void convertInput(vector<vector<T1>> inArr, vector<vector<T2>> expArr, vector<T1*>& inArrConverted, vector<T2*>& expArrConverted);
+
 public:
 	
 	// Save network to file
 	static void saveNetworkToXML(const string& fileName, Network& network);
 
-	// Train network function, that should be called, by the user, with specific arguments
-	template <typename T1, typename T2>
-	static void trainNetwork(const std::string& s, std::vector<T1*> inArr, std::vector<unsigned> inNum, std::vector<T2*> expArr, std::vector<unsigned> expNum, unsigned epochNum);
-
-	template <typename T1, typename T2>
-	static void trainNetwork(std::vector<T1*> inArr, std::vector<unsigned> inNum, std::vector<T2*> expArr, std::vector<unsigned> expNum, unsigned epochNum, const std::string& s);
-
 	// Load network to previously created network
 	static void loadNetworkFromXML(const string& route);
+
+	/**
+	 * Trains the neural network using the specified training method and parameters.
+	 *
+	 * @param s Method selector string indicating the training algorithm to be used.
+	 * @param inArr Vector of input arrays. Each array must be of numerical type.
+	 * @param expArr Vector of expected value arrays. Each array must be of numerical type.
+	 * @param epochNum Number of epochs for training.
+	 * @tparam T1 Type of the input array elements.
+	 * @tparam T2 Type of the expected value array elements.
+	 */
+	template <typename T1, typename T2>
+	void trainNetwork(const std::string& s, std::vector<vector<T1>> inArr, std::vector<vector<T2>> expArr, unsigned epochNum)
+	{
+		// Creatin in sizes array
+		vector<unsigned> inNum;
+
+		// Filling with sizes
+		for (unsigned i = 0; i < inArr.size(); i++)
+			inNum.push_back(inArr[i].size());
+
+		// Creating expected sizes array
+		vector<unsigned> expNum;
+
+		// Filling expected array
+		for (unsigned i = 0; i < expArr.size(); i++)
+			expNum.push_back(expArr[i].size());
+
+		// Containers
+		vector<T1*> convertedInArr;
+		vector<T2*> convertedExpArr;
+
+		// Converting vectors
+		convertInput(inArr, expArr, convertedInArr, convertedExpArr);
+
+		if (s == "Minibatch" || s == "minibatch" || s == "mb")
+		{
+			// Training using the minibatch gradient descent method
+			minibatchGradientDescent(convertedInArr, inNum, convertedExpArr, expNum, epochNum);
+		}
+		else if (s == "StochasticGradientDescent" || s == "SGD" || s == "sgd")
+		{
+			// Traingin using the stochastic gradient descent method
+			stochasticGradientDescent(convertedInArr, inNum, convertedExpArr, expNum, epochNum);
+		}
+		else if (s == "GradientDescent" || s == "GD" || s == "gd")
+		{
+			// Trainging using the gradient descent methdo
+			gradientDescent(convertedInArr, inNum, expArr, convertedExpArr, epochNum);
+		}
+		else
+		{
+			throw out_of_range("Invalid traingin technique, check code!");
+			exit(-10);
+		}
+
+		// Free allocated memory
+		for (unsigned i = 0; i < convertedInArr.size(); i++)
+			delete[] convertedInArr[i];
+		for (unsigned i = 0; i < convertedExpArr.size(); i++)
+			delete[] convertedExpArr[i];
+	}
 };
 
 #endif /*_NETWORK_H_*/

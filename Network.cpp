@@ -463,6 +463,7 @@ void Network::minibatchGradientDescent(vector<T1*> inArr, vector<unsigned> inNum
         for (unsigned startIdx = 0; startIdx < numExamples; startIdx += minibatchSize)
         {
             unsigned endIdx = min(startIdx + minibatchSize, numExamples);
+
             // Extract the minibatch
             vector<T1*> minibatchInArr(inArr.begin() + startIdx, inArr.begin() + endIdx);
             vector<unsigned> minibatchInNum(inNum.begin() + startIdx, inNum.begin() + endIdx);
@@ -483,8 +484,11 @@ void Network::minibatchGradientDescent(vector<T1*> inArr, vector<unsigned> inNum
 void Network::rmspropOptimization(double learningRate, double decayRate, double epsilon) 
 {
     // Iterate over each layer and neuron
-    for (unsigned i = 1; i < layers.size(); i++) {
+    for (unsigned i = 1; i < layers.size(); i++) 
+    {
         Neuron* thisLayer = layers[i].getThisLayer();
+
+#pragma omp paralell for
         for (unsigned j = 0; j < layers[i].getNumberOfNeurons(); j++) 
         {
             // Compute gradients
@@ -510,6 +514,8 @@ void Network::adagradOptimization(double learningRate, double epsilon)
     for (unsigned i = 1; i < layers.size(); i++) 
     {
         Neuron* thisLayer = layers[i].getThisLayer();
+
+#pragma omp paralell for
         for (unsigned j = 0; j < layers[i].getNumberOfNeurons(); j++) 
         {
             // Compute gradients
@@ -536,6 +542,7 @@ void Network::adadeltaOptimization(double decayRate, double epsilon)
         Neuron* thisLayer = layers[i].getThisLayer();
         Edge** edgeArray = edges[i - 1];
 
+#pragma omp paralell for
         for (unsigned j = 0; j < layers[i].getNumberOfNeurons(); j++)
         {
             // Compute gradients
@@ -565,6 +572,7 @@ void Network::nagOptimization(double learningRate, double momentum)
     for (unsigned i = 1; i < layers.size(); i++) 
     {
         Neuron* thisLayer = layers[i].getThisLayer();
+#pragma omp paralell for
         for (unsigned j = 0; j < layers[i].getNumberOfNeurons(); j++) 
         {
             // Compute gradients
@@ -593,6 +601,8 @@ void Network::adamaxOptimization(double learningRate, double beta1, double beta2
     for (unsigned i = 1; i < layers.size(); i++) 
     {
         Neuron* thisLayer = layers[i].getThisLayer();
+
+#pragma omp paralell for
         for (unsigned j = 0; j < layers[i].getNumberOfNeurons(); j++) 
         {
             // Compute gradients
@@ -617,81 +627,28 @@ void Network::adamaxOptimization(double learningRate, double beta1, double beta2
     }
 }
 
-/***************************************/
-/********* Training functions **********/
-/***************************************/
-
-/**
- * Trains the neural network using the specified training method and parameters.
- *
- * @param s Method selector string indicating the training algorithm to be used.
- * @param inArr Vector of input arrays. Each array must be of numerical type.
- * @param inNum Vector containing the lengths of the input arrays.
- * @param expArr Vector of expected value arrays. Each array must be of numerical type.
- * @param expNum Vector containing the lengths of the expected value arrays.
- * @param epochNum Number of epochs for training.
- * @tparam T1 Type of the input array elements.
- * @tparam T2 Type of the expected value array elements.
- */
+// Convert input arrays
 template <typename T1, typename T2>
-void trainNetwork(const std::string& s, std::vector<T1*> inArr, std::vector<unsigned> inNum, std::vector<T2*> expArr, std::vector<unsigned> expNum, unsigned epochNum = 100)
+void convertInput(vector<vector<T1>> inArr, vector<vector<T2>> expArr, vector<T1*>& inArrConverted, vector<T2*>& expArrConverted)
 {
-    if (s == "Minibatch" || s == "minibatch" || s == "mb")
+    // Converting input array
+    for (unsigned i = 0; i < inArr.size(); i++)
     {
-        // Training using the minibatch gradient descent method
-        minibatchGradientDescent(inArr, inNum, expArr, expNum, epochNum);
-    }
-    else if (s == "StochasticGradientDescent" || s == "SGD" || s == "sgd")
-    {
-        // Traingin using the stochastic gradient descent method
-        stochasticGradientDescent(inArr, inNum, expArr, expNum, epochNum);
-    }
-    else if (s == "GradientDescent" || s == "GD" || s == "gd")
-    {
-        // Trainging using the gradient descent methdo
-        gradientDescent(inArr, inNum, expArr, expNum, epochNum);
-    }
-    else
-    {
-        throw out_of_range("Invalid traingin technique, check code!");
-        exit(-10);
-    }
-}
+        // allocating new memory
+        inArrConverted.push_back(*(new T1[inArr[i].size()]));
 
+        // Copiing data
+        for (unsigned j = 0; j < inArr[i].size(); j++)
+            inArrConverted[i][j] = inArr[i][j];
+    }
 
-/**
- * Trains the neural network using the specified training method and parameters.
- *
- * @param s Method selector string indicating the training algorithm to be used.
- * @param inArr Vector of input arrays. Each array must be of numerical type.
- * @param inNum Vector containing the lengths of the input arrays.
- * @param expArr Vector of expected value arrays. Each array must be of numerical type.
- * @param expNum Vector containing the lengths of the expected value arrays.
- * @param epochNum Number of epochs for training.
- * @tparam T1 Type of the input array elements.
- * @tparam T2 Type of the expected value array elements.
- */
-template <typename T1, typename T2>
-void Network::trainNetwork(std::vector<T1*> inArr, std::vector<unsigned> inNum, std::vector<T2*> expArr, std::vector<unsigned> expNum, unsigned epochNum, const std::string& s)
-{
-    if (s == "Minibatch" || s == "minibatch" || s == "mb")
+    // Converting expected array
+    for (unsigned i = 0; i < expArr.size(); i++)
     {
-        // Training using the minibatch gradient descent method
-        minibatchGradientDescent(inArr, inNum, expArr, expNum, epochNum);
-    }
-    else if (s == "StochasticGradientDescent" || s == "SGD" || s == "sgd")
-    {
-        // Traingin using the stochastic gradient descent method
-        stochasticGradientDescent(inArr, inNum, expArr, expNum, epochNum);
-    }
-    else if (s == "GradientDescent" || s == "GD" || s == "gd")
-    {
-        // Trainging using the gradient descent methdo
-        gradientDescent(inArr, inNum, expArr, expNum, epochNum);
-    }
-    else
-    {
-        throw out_of_range("Invalid traingin technique, check code!");
-        exit(-10);
+        expArrConverted.push_back(*(new T2[inArr[i].size()]));
+
+        // Copiing data
+        for (unsigned j = 0; j < expArr[i].size(); j++)
+            expArrConverted[i][j] = expArr[i][j];
     }
 }
