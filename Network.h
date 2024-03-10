@@ -34,6 +34,13 @@ private:
 	bool useAdamaxOptimization;
 	bool useAdamOptimization;
 
+	// Regularization technikques
+	bool useL1;
+	bool useL2;
+	bool useDropout;
+
+	double dropoutRate; // Probability of dropping out a neuron in applicable layers
+
 	// Random number generation using the modern <random> library
 	std::mt19937 gen; // Standard mersenne_twister_engine seeded with time()
 	std::uniform_real_distribution<> dis; // Uniform distribution between -1.0 and 1.0
@@ -41,56 +48,46 @@ private:
 public:
 	Network() : layers(), edges(), gen(std::random_device{}()), dis(-1.0, 1.0),
 		useRmspropOptimization(false), useAdagradOptimization(false), useAdadeltaOptimization(false),
-		useNagOptimization(false), useAdamaxOptimization(false), useAdamOptimization(false) {}
+		useNagOptimization(false), useAdamaxOptimization(false), useAdamOptimization(false),
+	    useL1(false), useL2(false), useDropout(false), dropoutRate(0.5f) {}
 
 	// Vector of numbers of neurons in each layer, from left to right should be passed, and if adam optimization should be used
-	Network(vector<unsigned> numNeurons, const string& opt)
+	Network(vector<unsigned> numNeurons, const string& opt, const string& reg) : gen(std::random_device{}()), dis(-1.0, 1.0),
+		useRmspropOptimization(false), useAdagradOptimization(false), useAdadeltaOptimization(false),
+		useNagOptimization(false), useAdamaxOptimization(false), useAdamOptimization(false),
+		useL1(false), useL2(false), useDropout(false), dropoutRate(0.5f)
 	{
 		// Choosing optimization technique
 		if (opt == "RMS" || opt == "rms")
-		{
 			useRmspropOptimization = true;
-		}
 		else if (opt == "Adagrad" || opt == "adargad")
-		{
 			useAdagradOptimization = true;
-		}
 		else if (opt == "Adadelta" || opt == "adadelta")
-		{
 			useAdadeltaOptimization = true;
-		}
 		else if (opt == "NAG" || opt == "nag")
-		{
 			useNagOptimization = true;
-		}
 		else if (opt == "Adamax" || opt == "adamax")
-		{
 			useAdamaxOptimization = true;
-		}
 		else if (opt == "Adam" || opt == "adam")
-		{
 			useAdamOptimization = true;
-		}
 		else if (opt == "none" || opt == "NONE" || opt == "None" || opt == "n")
 		{
-			useRmspropOptimization = false;
-			useAdagradOptimization = false;
-			useAdadeltaOptimization = false;
-			useNagOptimization = false;
-			useAdamaxOptimization = false;
-			useAdamOptimization = false;
 		}
 		else
-		{
-			throw out_of_range("Invalid optimization technique, none will be used, check code if invalid.");
-			useRmspropOptimization = false;
-			useAdagradOptimization = false;
-			useAdadeltaOptimization = false;
-			useNagOptimization = false;
-			useAdamaxOptimization = false;
-			useAdamOptimization = false;
-		}
+			throw out_of_range("Invalid argument at optimization technique, none will be used, check code!");
 
+		// Choosing regularization technique
+		if (reg == "L1" || reg == "l1")
+			useL1 = true;
+		else if (reg == "L2" || reg == "l2")
+			useL2 = true;
+		else if (reg == "Dropout" || reg == "dropout" || reg == "d")
+			useDropout = true;
+		else if (reg == "None" || reg == "none" || reg == "N" || reg == "n")
+		{
+		}
+		else
+			throw out_of_range("Invalid argument at regularization technique, none will be used, check code!");
 
 		// Checking to see if at least we have at least 2 layers
 		if (numNeurons.size() < 2)
@@ -160,9 +157,9 @@ public:
 	}
 public:
 	// Getter functions
-	vector<Edge**> getEdges() { return edges; }
-	vector<Layer> getLayers() { return layers; }
-	string getOptimization() 
+	vector<Edge**> getEdges() const { return edges; }
+	vector<Layer> getLayers() const { return layers; }
+	string getOptimization() const 
 	{ 
 		string opt = "None";
 		if (useAdadeltaOptimization)
@@ -177,15 +174,31 @@ public:
 			opt = "Adam";
 		return opt;
 	}
+	string getRegularization() const 
+	{
+		string reg = "None";
+		if (useL1)
+			reg = "L1";
+		else if (useL2)
+			reg = "L2";
+		else if (useDropout)
+			reg = "Dropout";
+		return reg;
+	}
+
+private:
 
 	/***************************************/
 	/******* Initializing functions ********/
 	/***************************************/
-private:
+
 	// Function to generate a random number (you can customize this as needed)
 	double getRandomNumber();
 	void randInitEdges();
 	void randInitNeurons();
+
+	void initializeWeightsHe();
+	void initializeWeightsXavier();
 public:
 	void randInitNetwork() { randInitEdges(); randInitNeurons(); }
 
@@ -239,6 +252,14 @@ private:
 			std::cout << retArr[i] << " ";
 		std::cout << "\n";
 	}
+
+	// Normalizing functions
+	template<typename T>
+	double* normalizeInput(T* arr, unsigned num) { return normalizeData(arr, num); }
+
+	// Normalize expected array
+	template<typename T>
+	double* normalizeExpected(T* arr, unsigned num) { return normalizeData(arr, num); }
 
 	// Feedforward process on network
 	template<typename T>
@@ -355,17 +376,17 @@ private:
 		delete[] normalizedExpected;
 	}
 
+	// Calculated delta activations in the network
 	void calculateDeltaActivation();
+
+	// Calculate delta biases in the network
 	void calculateDeltaBias();
+
+	// Calcualte delta weights in the network
 	void calculateDeltaWeight();
+
+	// Setting newly calulated parameters to the network
 	void setNewParameters();
-
-	// Normalizing functions
-	template<typename T>
-	double* normalizeInput(T* arr, unsigned num) { return normalizeData(arr, num); }
-
-	template<typename T>
-	double* normalizeExpected(T* arr, unsigned num) { return normalizeData(arr, num); }
 
 	/***************************************/
 	/******* Optimization functions ********/
@@ -377,6 +398,50 @@ private:
 	void nagOptimization(double learningRate = 0.001f, double momentum = 0.9f);
 	void adamaxOptimization(double learningRate = 0.002f, double beta1 = 0.9f, double beta2 = 0.999f, double epsilon = 1e-8f);
 	void adamOptimization(double learningRate = 0.001f, double beta1 = 0.9f, double beta2 = 0.999f, double epsilon = 1e-8f);
+
+	// If there is a selected optimization method, then using it
+	void useOptimization() 
+	{
+		// Using the given optimization techniwue
+		if (useRmspropOptimization)
+			rmspropOptimization();
+		else if (useAdagradOptimization)
+			adagradOptimization();
+		else if (useAdadeltaOptimization)
+			adadeltaOptimization();
+		else if (useNagOptimization)
+			nagOptimization();
+		else if (useAdamaxOptimization)
+			adamaxOptimization();
+		else if (useAdamOptimization)
+			adamOptimization();
+	}
+
+	/***************************************/
+	/****** Regularization functions *******/
+	/***************************************/
+	void updateWeightsL1(double learningRate = 0.001f, double lambda = 0.001f);
+	void updateWeightsL2(double learningRate = 0.001f, double lambda = 0.001f);
+
+	void updateNeuronsL1(double learningRate = 0.001f, double lambda = 0.001f);
+	void updateNeuronsL2(double learningRate = 0.001f, double lambda = 0.001f);
+
+	void applyL1Regularization(double learningRate = 0.001f, double lambda = 0.001f) { updateWeightsL1(learningRate, lambda); updateNeuronsL1(learningRate, lambda); }
+	void applyL2Regularization(double learningRate = 0.001f, double lambda = 0.001f) { updateWeightsL2(learningRate, lambda); updateNeuronsL2(learningRate, lambda); }
+
+	void applyDropoutRegularization();
+
+	// Applying regularization technique, if selected
+	void useRegularization()
+	{
+		if (useL1)
+			applyL1Regularization();
+		else if (useL2)
+			applyL2Regularization();
+		else if (useDropout)
+			applyDropoutRegularization();
+	}
+private:
 
 	// Implementation of 1 backpropagation process
 	template <typename T1, typename T2>
@@ -403,22 +468,14 @@ private:
 			calculateDeltaWeight();
 		}
 
+		// Applying regularization to the network, if there is a selected one
+		useRegularization();
+
 		// Setting new parameters to the network
 		setNewParameters();
 
-		// Using the given optimization techniwue
-		if (useRmspropOptimization)
-			rmspropOptimization();
-		else if (useAdagradOptimization)
-			adagradOptimization();
-		else if (useAdadeltaOptimization)
-			adadeltaOptimization();
-		else if (useNagOptimization)
-			nagOptimization();
-		else if (useAdamaxOptimization)
-			adamaxOptimization();
-		else if (useAdamOptimization)
-			adamOptimization();
+		// Applying optimization technique to the network, if there is a selected one
+		useOptimization();
 	}
 
 	// Stochastic gradient descent function
@@ -578,6 +635,5 @@ public:
 			delete[] convertedExpArr[i];
 	}
 };
-
 
 #endif /*_NETWORK_H_*/

@@ -31,8 +31,8 @@ int main()
 		// each layer should have a numerical value greater then 0
 		vector<unsigned> layerSizes = { inSize, 50, 50, expectedSize };
 
-		// Create network object, with the specified 
-		Network network(layerSizes, "adam");
+		// Create network object, with the specified optimization and regularization techniques
+		Network network(layerSizes, "adam", "none");
 
 		// You can randinit all edges and biases, in the network, although it is not
 		// necessary, the constructor already does it, but if for some reason you want

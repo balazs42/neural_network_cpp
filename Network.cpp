@@ -28,6 +28,53 @@ void Network::randInitNeurons()
             layers[i].getThisLayer()[j].setBias(getRandomNumber());
 }
 
+// He initialization technique, to set initial weights
+void Network::initializeWeightsHe() 
+{
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    double std = sqrt(2.0f / layers[0].getNumberOfNeurons()); // for He initialization
+    std::normal_distribution<> dis(0, std);
+
+    for (int i = 0; i < layers.size() - 1; i++)
+    {
+        Neuron* leftLayer = layers[i].getThisLayer();
+        Neuron* rightLayer = layers[i + 1].getThisLayer();
+
+        unsigned leftSize = layers[i].getNumberOfNeurons();
+        unsigned rightSize = layers[i + 1].getNumberOfNeurons();
+
+        // Iterating through each edge, to set weights
+        for (int j = 0; j < leftSize; j++)
+            for (int k = 0; k < rightSize; k++)
+                edges[i][j][k].setWeight(dis(gen));
+        
+    }
+}
+
+// He initialization technique, to set initial weights
+void Network::initializeWeightsXavier() 
+{
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    double std = sqrt(2.0f / (layers[0].getNumberOfNeurons() + layers[1].getNumberOfNeurons())); // for Xavier
+    std::normal_distribution<> dis(0, std);
+
+    for (int i = 0; i < layers.size() - 1; i++)
+    {
+        Neuron* leftLayer = layers[i].getThisLayer();
+        Neuron* rightLayer = layers[i + 1].getThisLayer();
+
+        unsigned leftSize = layers[i].getNumberOfNeurons();
+        unsigned rightSize = layers[i + 1].getNumberOfNeurons();
+
+        // Iterating through each edge, to set weights
+        for (int j = 0; j < leftSize; j++)
+            for (int k = 0; k < rightSize; k++)
+                edges[i][j][k].setWeight(dis(gen));
+    }
+}
+
 /***************************************/
 /****** File handling functions ********/
 /***************************************/
@@ -496,4 +543,119 @@ void Network::adamaxOptimization(double learningRate, double beta1, double beta2
             thisLayer[j].setSecondMoment(secondMoment);
         }
     }
+}
+
+/***************************************/
+/****** Regularization functions *******/
+/***************************************/
+
+// Updating weights with L1 regulariaztion technique
+void Network::updateWeightsL1(double learningRate, double lambda) 
+{
+    // Parallelize the outer loop over layers
+#pragma omp parallel for collapse(3)
+    for (int i = 0; i < edges.size(); i++) 
+    {
+        // Iterate over each connection
+        for (int j = 0; j < layers[i].getNumberOfNeurons(); j++) 
+        {
+            for (int k = 0; k < layers[i + 1].getNumberOfNeurons(); k++) 
+            {
+                double weight = edges[i][j][k].getWeight();
+                double deltaWeight = edges[i][j][k].getDeltaWeight();
+
+                // Apply the L1 penalty
+                double penalty = lambda * (weight > 0 ? 1 : -1);
+
+                // Update the weight with L1 regularization
+                edges[i][j][k].setWeight(weight - learningRate * deltaWeight - penalty);
+            }
+        }
+    }
+}
+
+// Updating weights with L2 regulariaztion technique
+void Network::updateWeightsL2(double learningRate, double lambda)
+{
+    // Parallelize the outer loop over layers
+#pragma omp parallel for collapse(3)
+    for (int i = 0; i < edges.size(); i++) 
+    {
+        // Iterate over each connection
+        for (int j = 0; j < layers[i].getNumberOfNeurons(); j++) 
+        {
+            for (int k = 0; k < layers[i + 1].getNumberOfNeurons(); k++) 
+            {
+                double weight = edges[i][j][k].getWeight();
+                double deltaWeight = edges[i][j][k].getDeltaWeight();
+
+                // Apply the L2 penalty
+                double penalty = lambda * weight;
+
+                // Update the weight with L2 regularization
+                edges[i][j][k].setWeight(weight - learningRate * (deltaWeight + penalty));
+            }
+        }
+    }
+}
+
+// Function to apply L1 regularization during the weight update
+void Network::updateNeuronsL1(double learningRate, double lambda)
+{
+    // Iterate over each layer and each neuron
+    for (int i = 0; i < layers.size(); i++)
+    {
+        Neuron* neurons = layers[i].getThisLayer();
+        unsigned numNeurons = layers[i].getNumberOfNeurons();
+#pragma omp parallel for
+        for (int j = 0; j < numNeurons; j++)
+        {
+            // Update bias with L1
+            double sign = neurons[j].getBias() > 0 ? 1 : -1;
+            neurons[j].setBias(neurons[j].getBias() - learningRate * lambda * sign);
+        }
+    }
+}
+
+// Function to apply L2 regularization during the weight update
+void Network::updateNeuronsL2(double learningRate, double lambda)
+{
+    // Iterate over each layer and each neuron
+    for (int i = 0; i < layers.size(); i++)
+    {
+        Neuron* neurons = layers[i].getThisLayer();
+        unsigned numNeurons = layers[i].getNumberOfNeurons();
+#pragma omp parallel for
+        for (int j = 0; j < numNeurons; j++)
+        {
+            // Update bias with L2
+            neurons[j].setBias(neurons[j].getBias() - learningRate * lambda * neurons[j].getBias());
+        }
+    }
+}
+
+void Network::applyDropoutRegularization()
+{
+    // Assuming dropoutRate is defined in the Network class
+    std::uniform_real_distribution<> dropoutDistribution(0.0, 1.0);
+
+    // Apply dropout to each hidden layer (not the input or output layers)
+    for (size_t layerIndex = 1; layerIndex < layers.size() - 1; ++layerIndex) 
+    {
+        // Retrieve the current layer
+        Neuron* neurons = layers[layerIndex].getThisLayer();
+        unsigned numNeurons = layers[layerIndex].getNumberOfNeurons();
+
+        #pragma omp parallel for
+        for (int neuronIndex = 0; neuronIndex < numNeurons; ++neuronIndex) 
+        {
+            double dropoutDecision = dropoutDistribution(gen);
+            if (dropoutDecision < dropoutRate) 
+            {
+                // Dropout this neuron by setting its activation to zero
+                neurons[neuronIndex].setActivation(0.0);
+            }
+        }
+    
+}
 }
