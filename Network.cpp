@@ -4,12 +4,21 @@
 /******* Initializing functions ********/
 /***************************************/
 
+/**
+ * Generates a random number using a uniform distribution.
+ *
+ * @return A random double between 0.0 and 1.0.
+ */
 double Network::getRandomNumber() 
 {
     return dis(gen);
 }
 
-// Function that randomly initializes the weights of the edges
+/* Function that randomly initializes the weights of the edges
+ *
+ * Initializes the weights of all edges in the network randomly.
+ * Utilizes getRandomNumber() for generating weights, aiming to break symmetry in the learning process.
+ */
 void Network::randInitEdges() 
 {
 #pragma omp parallel for collapse(3)
@@ -19,7 +28,11 @@ void Network::randInitEdges()
                 edges[i][j][k].setWeight(getRandomNumber());
 }
 
-// Function that initializes the activations with random numbers
+/* Function that initializes the activations with random numbers
+ *
+ * Initializes the biases of all neurons in the network randomly.
+ * Utilizes getRandomNumber() to assign a random bias to each neuron, promoting diverse initial conditions.
+ */
 void Network::randInitNeurons() 
 {
 #pragma omp parallel for collapse(2)
@@ -28,7 +41,12 @@ void Network::randInitNeurons()
             layers[i].getThisLayer()[j].setBias(getRandomNumber());
 }
 
-// He initialization technique, to set initial weights
+/* He initialization technique, to set initial weights
+ *
+ * Initializes the network weights using the Xavier (Glorot) initialization method.
+ * This method is tailored for maintaining the variance of activations across layers,
+ * making it suitable for networks with sigmoid or tanh activations.
+ */
 void Network::initializeWeightsHe() 
 {
     std::random_device rd;
@@ -52,7 +70,11 @@ void Network::initializeWeightsHe()
     }
 }
 
-// He initialization technique, to set initial weights
+/**
+ * Initializes the network weights using the Xavier (Glorot) initialization method.
+ * This method is tailored for maintaining the variance of activations across layers,
+ * making it suitable for networks with sigmoid or tanh activations.
+ */
 void Network::initializeWeightsXavier() 
 {
     std::random_device rd;
@@ -79,7 +101,12 @@ void Network::initializeWeightsXavier()
 /****** File handling functions ********/
 /***************************************/
 
-// Save network to file
+/**
+ * Saves the current state of the network to an XML file.
+ *
+ * @param filename Path and name of the file to save the network's configuration.
+ * @param network Reference to the network instance to be saved.
+ */
 void Network::saveNetworkToXML(const string& filename, Network& network)
 {
     std::ofstream outFile(filename);
@@ -133,7 +160,11 @@ void Network::saveNetworkToXML(const string& filename, Network& network)
     outFile.close(); // Close the file
 }
 
-// Load network to previously created network
+/**
+ * Loads a network configuration from an XML file into the current network instance.
+ *
+ * @param route Path and name of the XML file containing the network's configuration.
+ */
 void Network::loadNetworkFromXML(const string& route)
 {
 
@@ -143,8 +174,11 @@ void Network::loadNetworkFromXML(const string& route)
 /********* Training functions **********/
 /***************************************/
 
-// Calculate delta activations in the network for all layers
-// Should be called, after the first error calculating in the rightmost layer is done
+/**
+ * Calculates the delta activations for the network during backpropagation.
+ * This function must be called after computing the initial error in the output layer,
+ * propagating this error through the network to update neuron activations accordingly.
+ */
 void Network::calculateDeltaActivation()
 {
     double error = 0.0f;
@@ -170,7 +204,11 @@ void Network::calculateDeltaActivation()
     }
 }
 
-// Calculate delat bias values in all of the network
+/**
+ * Calculates the adjustments (deltas) needed for the biases of all neurons.
+ * Utilizes the computed errors and the derivatives of the activation functions
+ * to adjust biases to minimize the network's overall error.
+ */
 void Network::calculateDeltaBias()
 {
     for (unsigned i = 0; i < layers.size(); i++)
@@ -188,7 +226,11 @@ void Network::calculateDeltaBias()
     }
 }
 
-// Calculating delta weights
+/**
+ * Computes the weight adjustments (deltas) across all edges in the network.
+ * Based on the activation of neurons and the computed errors, it updates weights
+ * to optimize the network's performance.
+ */
 void Network::calculateDeltaWeight()
 {
     for (unsigned i = 0; i < edges.size(); i++)
@@ -216,8 +258,11 @@ void Network::calculateDeltaWeight()
     }
 }
 
-// First setting the new weight to the edges based on the calculated delta values
-// Then setting the new biases to the neurons based on the calculated delta values
+/**
+ * Applies the calculated adjustments to weights and biases.
+ * This function updates the network's parameters with the new values computed
+ * during backpropagation to gradually reduce error.
+ */
 void Network::setNewParameters()
 {
     // Setting new weights for edges
@@ -257,31 +302,42 @@ void Network::setNewParameters()
 /******* Optimization functions ********/
 /***************************************/
 
-// RMSProp, Adagrad, Adadelta, NAG, and Adamax optimizations follow similar pattern:
-// They differ in how they compute the update values based on gradients and apply them to parameters.
+/* RMSProp, Adagrad, Adadelta, NAG, and Adamax optimizations follow similar pattern :
+ * They differ in how they compute the update values based on gradients and apply them to parameters.
+ *
+ * For RMSProp:
+ * E[g^2]_t = 0.9 * E[g^2]_{t-1} + 0.1 * g_t^2
+ * theta_t+1 = theta_t - (alpha / sqrt(E[g^2]_t + epsilon)) * g_t
+ *
+ * For Adagrad:
+ * Accumulate squared gradients: G_t = G_{t-1} + g_t^2
+ * Update rule: theta_t+1 = theta_t - (alpha / sqrt(G_t + epsilon)) * g_t
+ *
+ * For Adadelta:
+ * Compute running averages of squared gradients and squared updates
+ * Parameter update: theta_t+1 = theta_t + Delta_theta_t, where Delta_theta_t is derived from RMS values of gradients and updates
+ *
+ * For NAG (Nesterov Accelerated Gradient):
+ * Momentum term is calculated considering future position of parameters
+ * theta_t+1 = theta_t + momentum_term - alpha * grad
+ *
+ * For Adamax:
+ * Variation of Adam that uses infinity norm for scaling gradients
+ * v_t = max(beta2 * v_{t-1}, abs(g_t))
+ * Update rule is adapted to use v_t in place of the second moment estimate
+ */
 
-// For RMSProp:
-// E[g^2]_t = 0.9 * E[g^2]_{t-1} + 0.1 * g_t^2
-// theta_t+1 = theta_t - (alpha / sqrt(E[g^2]_t + epsilon)) * g_t
-
-// For Adagrad:
-// Accumulate squared gradients: G_t = G_{t-1} + g_t^2
-// Update rule: theta_t+1 = theta_t - (alpha / sqrt(G_t + epsilon)) * g_t
-
-// For Adadelta:
-// Compute running averages of squared gradients and squared updates
-// Parameter update: theta_t+1 = theta_t + Delta_theta_t, where Delta_theta_t is derived from RMS values of gradients and updates
-
-// For NAG (Nesterov Accelerated Gradient):
-// Momentum term is calculated considering future position of parameters
-// theta_t+1 = theta_t + momentum_term - alpha * grad
-
-// For Adamax:
-// Variation of Adam that uses infinity norm for scaling gradients
-// v_t = max(beta2 * v_{t-1}, abs(g_t))
-// Update rule is adapted to use v_t in place of the second moment estimate
-
-// Update weights and biases using Adam optimization (parallelized)
+/*
+ * Applies Adam optimization algorithm to update the weights and biases of the network.
+ *
+ * @param learningRate The step size used for each iteration of the optimization.
+ * @param beta1 The exponential decay rate for the first moment estimates.
+ * @param beta2 The exponential decay rate for the second moment estimates.
+ * @param epsilon A small value to prevent division by zero in the implementation.
+ *
+ * Adam combines the advantages of two other extensions of stochastic gradient descent,
+ * specifically Adaptive Gradient Algorithm (AdaGrad) and Root Mean Square Propagation (RMSProp).
+ */
 void Network::adamOptimization(double learningRate, double beta1, double beta2, double epsilon)
 {
     // Initialize Adam parameters
@@ -338,7 +394,15 @@ void Network::adamOptimization(double learningRate, double beta1, double beta2, 
     beta2Power *= beta2;
 }
 
-// Update weights and biases using RMSProp optimization
+/**
+ * Applies RMSProp optimization to update weights and biases of the network.
+ * RMSProp adapts the learning rates by dividing by an exponentially decaying average
+ * of squared gradients, helping to stabilize the convergence.
+ *
+ * @param learningRate The initial learning rate.
+ * @param decayRate The decay rate for the moving average of the squared gradients.
+ * @param epsilon A small constant added to the denominator to improve numerical stability.
+ */
 void Network::rmspropOptimization(double learningRate, double decayRate, double epsilon) 
 {
     // Iterate over each layer and neuron
@@ -374,10 +438,14 @@ void Network::rmspropOptimization(double learningRate, double decayRate, double 
     }
 }
 
-// Update weights and biases using Adagrad optimization
-// Adagrad adapts the learning rate to the parameters, performing smaller updates
-// for parameters associated with frequently occurring features, and larger updates
-// for parameters associated with infrequent features.
+/**
+ * Utilizes the Adagrad optimization method for updating the network's parameters.
+ * Adagrad adapts the learning rate for each parameter, favoring parameters that
+ * are infrequently updated. It's particularly effective for dealing with sparse data.
+ *
+ * @param learningRate The learning rate.
+ * @param epsilon A small constant to prevent division by zero.
+ */
 void Network::adagradOptimization(double learningRate, double epsilon) 
 {
     // Iterate over each layer and neuron
@@ -407,9 +475,14 @@ void Network::adagradOptimization(double learningRate, double epsilon)
     }
 }
 
-// AdaDelta optimization is an extension of Adagrad that seeks to reduce its aggressive, 
-// monotonically decreasing learning rate. Instead of accumulating all past squared gradients, 
-// AdaDelta restricts the window of accumulated past gradients to some fixed size.
+/**
+ * Implements the AdaDelta optimization algorithm, an extension of Adagrad that reduces
+ * its aggressively decreasing learning rate. Unlike Adagrad, AdaDelta does not require
+ * a learning rate and uses the ratio of the moving averages of the gradients to adjust parameters.
+ *
+ * @param decayRate The decay rate for the moving averages.
+ * @param epsilon A small constant added to improve numerical stability.
+ */
 void Network::adadeltaOptimization(double decayRate, double epsilon)
 {
     // AdaDelta does not require a learning rate. It uses the ratio of the moving average of the gradients to the moving average of the parameter updates.
@@ -459,9 +532,14 @@ void Network::adadeltaOptimization(double decayRate, double epsilon)
     }
 }
 
-// Update weights and biases using Nesterov Accelerated Gradient (NAG) optimization
-// NAG optimization accelerates the convergence of gradient descent by using
-// a look-ahead gradient rather than the current gradient to update parameters.
+/**
+ * Applies Nesterov Accelerated Gradient (NAG) optimization to update network parameters.
+ * NAG is a momentum-based optimization technique that makes a lookahead correction
+ * to the gradient, improving the convergence speed compared to classical momentum.
+ *
+ * @param learningRate The learning rate.
+ * @param momentum The momentum coefficient.
+ */
 void Network::nagOptimization(double learningRate, double momentum) 
 {
     // NAG Equation:
@@ -498,9 +576,16 @@ void Network::nagOptimization(double learningRate, double momentum)
     }
 }
 
-// Adamax is a variant of the Adam optimization algorithm that replaces the L2 norm
-// in the denominator with an infinity norm (max operation). It is more stable in cases
-// where gradients are sparse or gradients' L2 norm is prone to large variations.
+/**
+ * Implements Adamax optimization, a variant of the Adam algorithm that is based on
+ * the infinity norm of the gradients rather than the L2 norm. This method is less sensitive
+ * to large gradients, making it robust in various conditions, especially with sparse gradients.
+ *
+ * @param learningRate The learning rate.
+ * @param beta1 The exponential decay rate for the first moment estimates.
+ * @param beta2 The exponential decay rate for the scaled gradient values.
+ * @param epsilon A small constant for numerical stability.
+ */
 void Network::adamaxOptimization(double learningRate, double beta1, double beta2, double epsilon)
 {
 
@@ -549,7 +634,12 @@ void Network::adamaxOptimization(double learningRate, double beta1, double beta2
 /****** Regularization functions *******/
 /***************************************/
 
-// Updating weights with L1 regulariaztion technique
+/**
+ * Applies L1 regularization to update the weights across the network.
+ *
+ * @param learningRate The learning rate used for the weight update.
+ * @param lambda The regularization strength, influencing the penalty for large weights.
+ */
 void Network::updateWeightsL1(double learningRate, double lambda) 
 {
     // Parallelize the outer loop over layers
@@ -574,7 +664,12 @@ void Network::updateWeightsL1(double learningRate, double lambda)
     }
 }
 
-// Updating weights with L2 regulariaztion technique
+/**
+ * Applies L2 regularization to update the weights across the network.
+ *
+ * @param learningRate The learning rate used for the weight update.
+ * @param lambda The regularization strength, contributing to the penalty on weight sizes.
+ */
 void Network::updateWeightsL2(double learningRate, double lambda)
 {
     // Parallelize the outer loop over layers
@@ -599,7 +694,14 @@ void Network::updateWeightsL2(double learningRate, double lambda)
     }
 }
 
-// Function to apply L1 regularization during the weight update
+/**
+ * Applies L1 regularization to update the biases of all neurons across the network.
+ * This method encourages sparsity in the model by applying a penalty proportional
+ * to the absolute value of the neuron biases, promoting feature selection.
+ *
+ * @param learningRate The learning rate used for the bias update.
+ * @param lambda The regularization strength, controlling the penalty for large biases.
+ */
 void Network::updateNeuronsL1(double learningRate, double lambda)
 {
     // Iterate over each layer and each neuron
@@ -617,7 +719,14 @@ void Network::updateNeuronsL1(double learningRate, double lambda)
     }
 }
 
-// Function to apply L2 regularization during the weight update
+/**
+ * Applies L2 regularization to update the biases of all neurons across the network.
+ * This method discourages large biases by applying a penalty proportional
+ * to the square of the bias values, which helps in preventing overfitting.
+ *
+ * @param learningRate The learning rate used for the bias update.
+ * @param lambda The regularization strength, influencing the penalty on bias sizes.
+ */
 void Network::updateNeuronsL2(double learningRate, double lambda)
 {
     // Iterate over each layer and each neuron
@@ -634,6 +743,11 @@ void Network::updateNeuronsL2(double learningRate, double lambda)
     }
 }
 
+/**
+ * Applies dropout regularization during the network's training process.
+ * Randomly sets a subset of neuron activations to zero in each layer, except for the input and output layers,
+ * to prevent overfitting by reducing the network's sensitivity to specific weights.
+ */
 void Network::applyDropoutRegularization()
 {
     // Assuming dropoutRate is defined in the Network class
@@ -656,6 +770,5 @@ void Network::applyDropoutRegularization()
                 neurons[neuronIndex].setActivation(0.0);
             }
         }
-    
-}
+    }
 }

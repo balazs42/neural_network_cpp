@@ -5,11 +5,14 @@
 
 #include "Neuron.h"
 
+// Represents a layer within the neural network, containing a dynamic array of Neurons.
+// Supports initialization with a specified number of neurons, among other functionalities.
 class Layer
 {
 private:
-	Neuron* neurons;		// Neuron array in this layer	
-	unsigned numNeurons;	// Number of neurons in this layer
+	Neuron* neurons;		// Dynamic array of Neurons in this layer
+	unsigned numNeurons; // Number of Neurons in this layer
+
 public:
 	// Default constructor
 	Layer() : neurons(new Neuron), numNeurons(0) {}

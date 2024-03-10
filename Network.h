@@ -39,7 +39,11 @@ private:
 	bool useL2;
 	bool useDropout;
 
-	double dropoutRate; // Probability of dropping out a neuron in applicable layers
+	// Initializer technique
+	bool useWe;
+	bool useXavier;
+
+	double dropoutRate; // Probability of dropping out a neuron in applicable layers ranging: [0.2 0.5]
 
 	// Random number generation using the modern <random> library
 	std::mt19937 gen; // Standard mersenne_twister_engine seeded with time()
@@ -49,13 +53,24 @@ public:
 	Network() : layers(), edges(), gen(std::random_device{}()), dis(-1.0, 1.0),
 		useRmspropOptimization(false), useAdagradOptimization(false), useAdadeltaOptimization(false),
 		useNagOptimization(false), useAdamaxOptimization(false), useAdamOptimization(false),
-	    useL1(false), useL2(false), useDropout(false), dropoutRate(0.5f) {}
+	    useL1(false), useL2(false), useDropout(false), dropoutRate(0.5f), useWe(false), useXavier(false) {}
 
-	// Vector of numbers of neurons in each layer, from left to right should be passed, and if adam optimization should be used
-	Network(vector<unsigned> numNeurons, const string& opt, const string& reg) : gen(std::random_device{}()), dis(-1.0, 1.0),
+	/**
+	 * Constructs a neural network with specified configurations for optimization, regularization, initialization techniques, and dropout rate.
+	 *
+	 * @param numNeurons A vector containing the number of neurons in each layer, ordered from the input to the output layer.
+	 * @param opt A string specifying the optimization technique to be used. Options include "RMS", "Adagrad", "Adadelta", "NAG", "Adamax", "Adam", or "none" for no optimization.
+	 * @param reg A string indicating the regularization technique to be applied. Options are "L1", "L2", "Dropout", or "None" for no regularization.
+	 * @param initer A string denoting the weight initialization method. Options include "We" for He initialization, "Xavier", or default initialization if unspecified.
+	 * @param dpr The dropout rate to be applied if dropout regularization is chosen. Represents the fraction of neurons to drop in each forward pass during training.
+	 *
+	 * This constructor initializes the neural network's structure, setting up layers and connections based on the provided specifications. It validates the input parameters
+	 * for layer configurations, ensures at least two layers are defined, and initializes weights and biases according to the chosen methods. Throws exceptions for invalid configurations.
+	 */
+	Network(vector<unsigned> numNeurons, const string& opt, const string& reg, const string& initer, double dpr = 0.5f) : gen(std::random_device{}()), dis(-1.0, 1.0),
 		useRmspropOptimization(false), useAdagradOptimization(false), useAdadeltaOptimization(false),
 		useNagOptimization(false), useAdamaxOptimization(false), useAdamOptimization(false),
-		useL1(false), useL2(false), useDropout(false), dropoutRate(0.5f)
+		useL1(false), useL2(false), useDropout(false), dropoutRate(dpr), useWe(false), useXavier(false)
 	{
 		// Choosing optimization technique
 		if (opt == "RMS" || opt == "rms")
@@ -88,6 +103,12 @@ public:
 		}
 		else
 			throw out_of_range("Invalid argument at regularization technique, none will be used, check code!");
+
+		// Choosing initialization technique
+		if (initer == "We" || initer == "we")
+			useWe = true;
+		else if (initer == "Xavier" || initer == "xavier" || initer == "x")
+			useXavier = true;
 
 		// Checking to see if at least we have at least 2 layers
 		if (numNeurons.size() < 2)
@@ -134,8 +155,13 @@ public:
 			edges.push_back(tmp);
 		}
 
-		// Randomly initializing each weight and bias
+		// Initializing network
 		randInitNetwork();
+
+		if (useWe)
+			initializeWeightsHe();
+		else if (useXavier)
+			initializeWeightsXavier();
 	}
 
 	// Setting the activation function to be the same for the whole network
@@ -155,6 +181,9 @@ public:
 		for (unsigned i = 0; i < v.size(); i++)
 			layers[i].setLayerActivationFunction(v[i]);
 	}
+
+	// Setter for dropout rate
+	void setDropoutRate(double parameter) { dropoutRate = parameter; }
 public:
 	// Getter functions
 	vector<Edge**> getEdges() const { return edges; }
@@ -185,6 +214,7 @@ public:
 			reg = "Dropout";
 		return reg;
 	}
+	double getDropoutRate() const { return dropoutRate; }
 
 private:
 
@@ -197,9 +227,13 @@ private:
 	void randInitEdges();
 	void randInitNeurons();
 
+	// He weight initializing algorithm
 	void initializeWeightsHe();
+
+	// Xavier weight initializing algorithm
 	void initializeWeightsXavier();
 public:
+	// Randomly init each neuron and weight in the network
 	void randInitNetwork() { randInitEdges(); randInitNeurons(); }
 
 	/***************************************/
@@ -438,8 +472,6 @@ private:
 			applyL1Regularization();
 		else if (useL2)
 			applyL2Regularization();
-		else if (useDropout)
-			applyDropoutRegularization();
 	}
 private:
 
@@ -449,6 +481,10 @@ private:
 	{
 		// Feedforward process
 		feedForwardNetwork(inputArr, inNum);
+
+		// Applying dropout regularization if selected
+		if (useDropout)
+			applyDropoutRegularization();
 
 		// First error calculation in last layer
 		calculateError(expectedArr, expNum);

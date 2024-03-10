@@ -9,14 +9,17 @@
 
 using std::string;
 
+// Class representing a connection (edge) between two neurons in the neural network.
+// Contains information about the weight of the connection, error, delta weight,
+// and other attributes relevant for optimization algorithms.
 class Edge 
 {
 private:
-	double weight;			// Weight of the edge
-	double error;			// Calcuated error on the edge
-	double deltaWeight;		// Calculated delta weight on the edge
-	double deltaWeightAvg;	// Average delta weight for optimization algorithms
-	double squaredGradientAvg;
+	double weight;				// Weight of the edge
+	double error;				// Calculated error on the edge, used in backpropagation
+	double deltaWeight;			// Change in weight to be applied during optimization
+	double deltaWeightAvg;		// Average change in weight, used by some optimizers
+	double squaredGradientAvg;	// Average of squared gradients, used in optimizers like RMSProp and AdaDelta
 
 public:
 	Edge() : weight(0.0f), error(0.0f), deltaWeight(0.0f), deltaWeightAvg(0.0f), squaredGradientAvg(0.0f) {}
