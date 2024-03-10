@@ -29,10 +29,10 @@ int main()
 
 		// First define the number of neurons in each layer
 		// each layer should have a numerical value greater then 0
-		vector<unsigned> layerSizes = { inSize, 50, 50, expectedSize };
+		vector<unsigned> layerSizes = { inSize, 10, 10, expectedSize };
 
-		// Create network object, with the specified optimization and regularization techniques
-		Network network(layerSizes, "adam", "none", "none");
+		// Create network object, with the specified optimization and regularization and initialization techniques
+		Network network(layerSizes, "adam", "L1", "Xavier");
 
 		// You can randinit all edges and biases, in the network, although it is not
 		// necessary, the constructor already does it, but if for some reason you want
@@ -48,7 +48,7 @@ int main()
 
 		// Or by passing the vector as an argument, you can set different
 		// activation functions to different layers
-		network.setLayerActivationFunctions(activationFunctions);
+		//network.setLayerActivationFunctions(activationFunctions);
 
 		//-----------------------------------//
 
@@ -88,7 +88,7 @@ int main()
 		//-----------------------------------//
 
 		// Training network, with the provided data
-		network.trainNetwork("SGD", inputArr, expArr, 100);
+		network.trainNetwork("GD", inputArr, expArr, 100);
 	}
 	catch (std::out_of_range)
 	{

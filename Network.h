@@ -239,6 +239,7 @@ public:
 	/***************************************/
 	/****** File handling functions ********/
 	/***************************************/
+	void printNetwork();
 
 
 private:
@@ -328,7 +329,7 @@ private:
 
 		// Debug print in input layer
 		for (unsigned i = 0; i < num; i++)
-			std::cout << "Input: " << normalizedInput[i] << " Activation: " << firstLayer[i].getActivation() << "\n";
+			std::cout << "Input: " << normalizedInput[i] << " Activation: " << firstLayer[i].getBias() << "\n";
 
 		// Starting feedforward process
 		for (int i = 0; i < layers.size() - 1; i++)
@@ -479,6 +480,10 @@ private:
 	template <typename T1, typename T2>
 	void backPropagation(T1* inputArr, unsigned inNum, T2* expectedArr, unsigned expNum)
 	{
+		// Debug print
+		std::cout << "Before iteration\n";
+		printNetwork();
+
 		// Feedforward process
 		feedForwardNetwork(inputArr, inNum);
 
@@ -512,6 +517,10 @@ private:
 
 		// Applying optimization technique to the network, if there is a selected one
 		useOptimization();
+
+		// Debug print
+		std::cout << "\nAfter iteration\n";
+		printNetwork();
 	}
 
 	// Stochastic gradient descent function

@@ -100,6 +100,35 @@ void Network::initializeWeightsXavier()
 /***************************************/
 /****** File handling functions ********/
 /***************************************/
+/**
+ * Prints the whole network structure to the standard output
+ */
+void Network::printNetwork()
+{
+    std::cout << "\n Neurons\n";
+    // Printing neurons
+    for (unsigned i = 0; i < layers.size(); i++)
+    {
+        Neuron* thisLayer = layers[i].getThisLayer();
+        for (unsigned j = 0; j < layers[i].getNumberOfNeurons(); j++)
+            std::cout << thisLayer[j].getBias() << " ";
+        std::cout << "\n";
+    }
+
+    std::cout << "\nEdges\n";
+    // Printing edges
+    for (unsigned i = 0; i < layers.size() - 1; i++)
+    {
+        unsigned leftSize = layers[i].getNumberOfNeurons();
+        unsigned rightSize = layers[i + 1].getNumberOfNeurons();
+        for (unsigned j = 0; j < leftSize; j++)
+        {
+            for (unsigned k = 0; k < rightSize; k++)
+                std::cout << edges[i][j][k].getWeight() << " ";
+        }
+        std::cout << "\n";
+    }
+}
 
 /**
  * Saves the current state of the network to an XML file.
