@@ -1,6 +1,7 @@
-Provided by an MSC EE student of Budapest University of Technology and Economics
+Provided by an MSC EE student of Budapest University of Technology and Economics (BME)
 
-The implementation is based on 3Blue1Brown's article on the topic: https://www.3blue1brown.com/lessons/backpropagation-calculus
+The implementation is based on 3Blue1Brown's article on the topic: https://www.3blue1brown.com/lessons/backpropagation-calculus 
+
 My take on the backpropagation algorithm, classes used for the project are highly based on the article.
 
  Currently this project is in this state: WORK IN PROGRESS!
@@ -23,7 +24,7 @@ My take on the backpropagation algorithm, classes used for the project are highl
 
  This is an example of how you could use this repository
 
- 
+ <code>
 int main(void)
 {
 	try
@@ -90,3 +91,4 @@ int main(void)
 							 10000															// Number of epochs
 		);
 }
+</code>
