@@ -38,7 +38,7 @@ void Network::randInitNeurons()
 /***************************************/
 
 // Save network to file
-void Network::saveNetworkToXML(const string& filename)
+void Network::saveNetworkToXML(const string& filename, Network& network)
 {
     std::ofstream outFile(filename);
     if (!outFile.is_open())
@@ -53,38 +53,44 @@ void Network::saveNetworkToXML(const string& filename)
 
     //<parameter> layer1NeuronNum layer2NeuronNum ... LayerNNeuronNum OptimizationTechnique</parameter> 
     outFile << "<parameter> ";
-    for (unsigned i = 0; i < layers.size(); i++)
-        outFile << layers[i].getNumberOfNeurons() << " ";
-
+    for (unsigned i = 0; i < network.getLayers().size(); i++)
+        outFile << network.getLayers()[i].getNumberOfNeurons() << " ";
+    
     // Printing optimization technique
-    string opt = "None";
-    if (useAdadeltaOptimization)
-        opt = "Adadelta";
-    else if (useAdagradOptimization)
-        opt = "Adagrad";
-    else if (useAdamaxOptimization)
-        opt = "Adamax";
-    else if (useNagOptimization)
-        opt = "Nag";
-    else if (useAdamOptimization)
-        opt = "Adam";
+    string opt = network.getOptimization();
 
     outFile << opt << "\n";
 
-    outFile << "</parameter" << "\n";
+    outFile << "</parameter>" << "\n";
 
     // Save neurons
-    for (unsigned i = 0; i < layers.size(); i++)
+    for (unsigned i = 0; i < network.getLayers().size(); i++)
     {
-        Neuron* thisLayer = layers[i].getThisLayer();
+        Neuron* thisLayer = network.getLayers()[i].getThisLayer();
 
         // Saving each neuron
-        for (unsigned j = 0; j < layers[i].getNumberOfNeurons(); j++)
+        for (unsigned j = 0; j < network.getLayers()[i].getNumberOfNeurons(); j++)
             thisLayer[j].saveNeuronToXML(outFile);
     }
 
-    // Saving each edge
+    // Save edges
+    for (unsigned i = 0; i < network.getEdges().size(); i++)
+    {
+        for (unsigned j = 0; j < network.getLayers()[i].getNumberOfNeurons(); j++)
+        {
+            for (unsigned k = 0; k < network.getLayers()[i + 1].getNumberOfNeurons(); k++)
+            {
+                network.getEdges()[i][j][k].saveEdgeToXML(outFile);
+            }
+        }
+    }
+
+    // Close XML tag
+    outFile << "</Network>" << "\n";
+
+    outFile.close(); // Close the file
 }
+
 // Load network to previously created network
 void Network::loadNetworkFromXML(const string& route)
 {
@@ -628,7 +634,45 @@ void Network::adamaxOptimization(double learningRate, double beta1, double beta2
  * @tparam T2 Type of the expected value array elements.
  */
 template <typename T1, typename T2>
-static void Network::trainNetwork(const std::string& s, std::vector<T1*> inArr, std::vector<unsigned> inNum, std::vector<T2*> expArr, std::vector<unsigned> expNum, unsigned epochNum)
+void trainNetwork(const std::string& s, std::vector<T1*> inArr, std::vector<unsigned> inNum, std::vector<T2*> expArr, std::vector<unsigned> expNum, unsigned epochNum = 100)
+{
+    if (s == "Minibatch" || s == "minibatch" || s == "mb")
+    {
+        // Training using the minibatch gradient descent method
+        minibatchGradientDescent(inArr, inNum, expArr, expNum, epochNum);
+    }
+    else if (s == "StochasticGradientDescent" || s == "SGD" || s == "sgd")
+    {
+        // Traingin using the stochastic gradient descent method
+        stochasticGradientDescent(inArr, inNum, expArr, expNum, epochNum);
+    }
+    else if (s == "GradientDescent" || s == "GD" || s == "gd")
+    {
+        // Trainging using the gradient descent methdo
+        gradientDescent(inArr, inNum, expArr, expNum, epochNum);
+    }
+    else
+    {
+        throw out_of_range("Invalid traingin technique, check code!");
+        exit(-10);
+    }
+}
+
+
+/**
+ * Trains the neural network using the specified training method and parameters.
+ *
+ * @param s Method selector string indicating the training algorithm to be used.
+ * @param inArr Vector of input arrays. Each array must be of numerical type.
+ * @param inNum Vector containing the lengths of the input arrays.
+ * @param expArr Vector of expected value arrays. Each array must be of numerical type.
+ * @param expNum Vector containing the lengths of the expected value arrays.
+ * @param epochNum Number of epochs for training.
+ * @tparam T1 Type of the input array elements.
+ * @tparam T2 Type of the expected value array elements.
+ */
+template <typename T1, typename T2>
+void Network::trainNetwork(std::vector<T1*> inArr, std::vector<unsigned> inNum, std::vector<T2*> expArr, std::vector<unsigned> expNum, unsigned epochNum, const std::string& s)
 {
     if (s == "Minibatch" || s == "minibatch" || s == "mb")
     {

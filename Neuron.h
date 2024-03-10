@@ -45,6 +45,10 @@ public:
 		firstMoment(0.0f), secondMoment(0.0f),
 		squaredGradientAvg(0.0f), squaredGradientSum(0.0f){}
 
+	bool operator==(const Neuron& other)
+	{
+		return (bias == other.getBias() && activation == other.getActivation());
+	}
 	// Overriding operator=, so copiing all parameters
 	Neuron operator=(const Neuron& rhs)
 	{
@@ -53,18 +57,18 @@ public:
 			return *this;
 
 		// Copy data
-		activation = rhs.activation;
-		bias = rhs.bias;
-		error = rhs.error;
-		z = rhs.z;
-		deltaActivation = rhs.deltaActivation;
-		deltaBias = rhs.deltaBias;
-		firstMoment = rhs.firstMoment;
-		secondMoment = rhs.secondMoment;
-		squaredGradientSum = rhs.squaredGradientSum;
-		squaredGradientAvg = rhs.squaredGradientAvg;
-		activationFunction = rhs.activationFunction;
-		derivativeActivationFunction = rhs.derivativeActivationFunction;
+		activation = rhs.getActivation();
+		bias = rhs.getBias();
+		error = rhs.getError();
+		z = rhs.getZ();
+		deltaActivation = rhs.getDeltaActivation();
+		deltaBias = rhs.getDeltaBias();
+		firstMoment = rhs.getFirstMoment();
+		secondMoment = rhs.getSecondMoment();
+		squaredGradientSum = rhs.getSquaredGradientSum();
+		squaredGradientAvg = rhs.getSquaredGradientAvg();
+		activationFunction = rhs.getActivationFunction();
+		derivativeActivationFunction = rhs.getDerivativeActivationFunction();
 
 		// Return reference to the left-hand side object
 		return *this;
@@ -81,7 +85,8 @@ public:
 	double getSecondMoment() const { return secondMoment; }
 	double getSquaredGradientSum() const { return squaredGradientSum; }
 	double getSquaredGradientAvg() const { return squaredGradientAvg; }
-
+	functionPtr getActivationFunction() const { return activationFunction; }
+	functionPtr getDerivativeActivationFunction() const { return derivativeActivationFunction; }
 
 	// Setter functions
 	void setActivation(double parameter) { activation = parameter; }

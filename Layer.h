@@ -10,7 +10,8 @@ private:
 	unsigned numNeurons;	// Number of neurons in this layer
 public:
 	// Default constructor
-	Layer() : neurons(nullptr), numNeurons(0) {}
+	Layer() : neurons(new Neuron), numNeurons(0) {}
+	~Layer() { delete[] neurons; }
 
 	// Previously allocated neurons can be passed by creating a neuron array by default, or loading it from file
 	Layer(Neuron* pNeurons, unsigned pNum) : neurons(pNeurons), numNeurons(pNum) {}
@@ -26,7 +27,7 @@ public:
 	}
 
 	// Getter and setter functions
-	Neuron* getThisLayer() { return neurons;}				// Returns the Neuron array in this layer
+	Neuron* getThisLayer() { if (neurons != nullptr)return neurons; else return nullptr; }				// Returns the Neuron array in this layer
 	unsigned getNumberOfNeurons() { return numNeurons; }	// Returns the number of neurons in this layer
 
 	void setNeurons(Neuron* parameter) { neurons = parameter; }

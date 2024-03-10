@@ -102,7 +102,7 @@ int main()
 		//-----------------------------------//
 
 		// Training network, with the provided data
-		//network.trainNetwork(inputArr, inArrSizes, expArr, expArrSizes);
+		//network.trainNetwork(inputArr, inArrSizes, expArr, expArrSizes, 100, "SGD");
 	}
 	catch (std::out_of_range)
 	{

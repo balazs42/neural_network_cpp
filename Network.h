@@ -148,9 +148,25 @@ public:
 		for (unsigned i = 0; i < v.size(); i++)
 			layers[i].setLayerActivationFunction(v[i]);
 	}
-
+public:
 	// Getter functions
 	vector<Edge**> getEdges() { return edges; }
+	vector<Layer> getLayers() { return layers; }
+	string getOptimization() 
+	{ 
+		string opt = "None";
+		if (useAdadeltaOptimization)
+			opt = "Adadelta";
+		else if (useAdagradOptimization)
+			opt = "Adagrad";
+		else if (useAdamaxOptimization)
+			opt = "Adamax";
+		else if (useNagOptimization)
+			opt = "Nag";
+		else if (useAdamOptimization)
+			opt = "Adam";
+		return opt;
+	}
 
 	/***************************************/
 	/******* Initializing functions ********/
@@ -167,8 +183,6 @@ public:
 	/****** File handling functions ********/
 	/***************************************/
 private:
-	void saveNetworkToXML(const string& filename);
-	void loadNetworkFromXML(const string& filename);
 
 	/***************************************/
 	/********* Training functions **********/
@@ -229,20 +243,20 @@ private:
 	template <typename T1, typename T2>
 	void minibatchGradientDescent(vector<T1*> inArr, vector<unsigned> inNum, vector<T2*> expArr, vector<unsigned> expNum, unsigned epochNum);
 
-	// Save network to file
-	void saveNetwork(const string& s);
-
 public:
+	
+	// Save network to file
+	static void saveNetworkToXML(const string& fileName, Network& network);
 
 	// Train network function, that should be called, by the user, with specific arguments
 	template <typename T1, typename T2>
-	static void trainNetwork(const std::string& s, std::vector<T1*> inArr, std::vector<unsigned> inNum, std::vector<T2*> expArr, std::vector<unsigned> expNum, unsigned epochNum = 100);
+	static void trainNetwork(const std::string& s, std::vector<T1*> inArr, std::vector<unsigned> inNum, std::vector<T2*> expArr, std::vector<unsigned> expNum, unsigned epochNum);
 
 	template <typename T1, typename T2>
-	static void trainNetwork(std::vector<T1*> inArr, std::vector<unsigned> inNum, std::vector<T2*> expArr, std::vector<unsigned> expNum, unsigned epochNum = 100, const std::string& s = "GD");
+	static void trainNetwork(std::vector<T1*> inArr, std::vector<unsigned> inNum, std::vector<T2*> expArr, std::vector<unsigned> expNum, unsigned epochNum, const std::string& s);
 
 	// Load network to previously created network
-	void loadNetwork(Network& network, const string& route);
+	static void loadNetworkFromXML(const string& route);
 };
 
 #endif /*_NETWORK_H_*/
