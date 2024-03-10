@@ -46,7 +46,8 @@ public:
 	Neuron() : activation(0.0f), bias(0.0f), error(0.0f), z(0.0f), activationFunction(&Sigmoid),
 		derivativeActivationFunction(&DSigmoid), deltaActivation(0.0f), deltaBias(0.0f), 
 		firstMoment(0.0f), secondMoment(0.0f),
-		squaredGradientAvg(0.0f), squaredGradientSum(0.0f){}
+		squaredGradientAvg(0.0f), squaredGradientSum(0.0f)
+	{}
 
 	bool operator==(const Neuron& other)
 	{

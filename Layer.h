@@ -13,7 +13,7 @@ private:
 public:
 	// Default constructor
 	Layer() : neurons(new Neuron), numNeurons(0) {}
-	~Layer() { delete[] neurons; }
+	~Layer() { /*delete[] neurons;*/ }
 
 	// Previously allocated neurons can be passed by creating a neuron array by default, or loading it from file
 	Layer(Neuron* pNeurons, unsigned pNum) : neurons(pNeurons), numNeurons(pNum) {}

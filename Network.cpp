@@ -4,35 +4,28 @@
 /******* Initializing functions ********/
 /***************************************/
 
-// Function to generate a random number
 double Network::getRandomNumber() 
 {
-    // Generate a random number between -1.0 and 1.0
-    return (rand() / (RAND_MAX / 2.0)) - 1.0;
+    return dis(gen);
 }
 
-// Initializing edges with random numbers
-void Network::randInitEdges()
+// Function that randomly initializes the weights of the edges
+void Network::randInitEdges() 
 {
-    // Seed the random number generator
-    srand(time(nullptr));
-
-    // Iterating through each edge and setting it to a random values
-    for (unsigned i = 0; i < layers.size() - 1; i++)
-        for (unsigned j = 0; j < layers[i].getNumberOfNeurons(); j++)
-            for (unsigned k = 0; k < layers[i + 1].getNumberOfNeurons(); k++)
-                edges[i][j][k].setWeight(getRandomNumber());                    // Setting each weight with a random number
+#pragma omp parallel for collapse(3)
+    for (int i = 0; i < layers.size() - 1; i++) 
+        for (int j = 0; j < layers[i].getNumberOfNeurons(); j++) 
+            for (int k = 0; k < layers[i + 1].getNumberOfNeurons(); k++) 
+                edges[i][j][k].setWeight(getRandomNumber());
 }
 
-// Initializing neuron biases with random numbers
-void Network::randInitNeurons()
+// Function that initializes the activations with random numbers
+void Network::randInitNeurons() 
 {
-    // Seed the random number generator
-    srand(time(nullptr));
-
-    for (unsigned i = 0; i < layers.size(); i++)
-        for (unsigned j = 0; j < layers[i].getNumberOfNeurons(); j++)
-            layers[i].getThisLayer()->setBias(getRandomNumber());               // Setting each bias with a random number
+#pragma omp parallel for collapse(2)
+    for (int i = 0; i < layers.size(); i++) 
+        for (int j = 0; j < layers[i].getNumberOfNeurons(); j++) 
+            layers[i].getThisLayer()[j].setBias(getRandomNumber());
 }
 
 /***************************************/
@@ -133,20 +126,17 @@ void Network::calculateDeltaActivation()
 // Calculate delat bias values in all of the network
 void Network::calculateDeltaBias()
 {
-    double dBias = 0.0f;
     for (unsigned i = 0; i < layers.size(); i++)
     {
-        dBias = 0.0f;
-
         // Current layer's neuron array
         Neuron* thisLayer = layers[i].getThisLayer();
 
         // Parallelize delta bias calculation for each neuron in the current layer
-#pragma omp parallel for
-        for (unsigned i = 0; i < layers[i].getNumberOfNeurons(); ++i)
+//#pragma omp parallel for
+        for (int j = 0; j < layers[i].getNumberOfNeurons(); j++)
         {
-            double deltaBias = thisLayer[i].getError() * thisLayer[i].activateDerivative(thisLayer[i].getZ());
-            thisLayer[i].setDeltaBias(deltaBias);
+            double deltaBias = thisLayer[j].getError() * thisLayer[j].activateDerivative(thisLayer[j].getZ());
+            thisLayer[j].setDeltaBias(deltaBias);
         }
     }
 }
@@ -154,8 +144,6 @@ void Network::calculateDeltaBias()
 // Calculating delta weights
 void Network::calculateDeltaWeight()
 {
-    double dWeight = 0.0f;
-
     for (unsigned i = 0; i < edges.size(); i++)
     {
         // Number of neurons in the left layer, and left layer's neuron array
@@ -166,12 +154,13 @@ void Network::calculateDeltaWeight()
         unsigned rightSize = layers[i + 1].getNumberOfNeurons();
         Neuron* rightLayer = layers[i + 1].getThisLayer();
 
-        for (unsigned j = 0; j < leftSize; i++)
+#pragma parallel for collapse(2)
+        for (int j = 0; j < leftSize; j++)
         {
-            for (unsigned k = 0; k < rightSize; k++)
+            for (int k = 0; k < rightSize; k++)
             {
                 // DeltaWeight =  left activation      *                      d/dActFun(z)                      *   right neuron error      
-                dWeight = leftLayer[j].getActivation() * rightLayer[k].activateDerivative(rightLayer[j].getZ()) * rightLayer[k].getError();
+                double dWeight = leftLayer[j].getActivation() * rightLayer[k].activateDerivative(rightLayer[j].getZ()) * rightLayer[k].getError();
 
                 // Setting delta weight
                 edges[i][j][k].setDeltaWeight(dWeight);
@@ -184,18 +173,16 @@ void Network::calculateDeltaWeight()
 // Then setting the new biases to the neurons based on the calculated delta values
 void Network::setNewParameters()
 {
-    double newWeight = 0.0f;
-
     // Setting new weights for edges
-#pragma omp parallel for
-    for (unsigned i = 0; i < edges.size(); i++)
+#pragma omp parallel for collapse(3)
+    for (int i = 0; i < edges.size(); i++)
     {
-        for (unsigned j = 0; j < layers[i].getNumberOfNeurons(); j++)
+        for (int j = 0; j < layers[i].getNumberOfNeurons(); j++)
         {
-            for (unsigned k = 0; k < layers[i + 1].getNumberOfNeurons(); k++)
+            for (int k = 0; k < layers[i + 1].getNumberOfNeurons(); k++)
             {
                 // New weight =         old weigth     -      calculated delta weight
-                newWeight = edges[i][j][k].getWeight() - edges[i][j][k].getDeltaWeight();
+                double newWeight = edges[i][j][k].getWeight() - edges[i][j][k].getDeltaWeight();
                 
                 // Setting new weight
                 edges[i][j][k].setWeight(newWeight);
@@ -203,17 +190,15 @@ void Network::setNewParameters()
         }
     }
 
-    double newBias = 0.0f;
-
     // Setting new biases for each neuron in each layer
-#pragma omp parallel for
-    for (unsigned i = 0; i < layers.size(); i++)
+    for (int i = 0; i < layers.size(); i++)
     {
         Neuron* thisLayer = layers[i].getThisLayer();
-        for (unsigned j = 0; j < layers[i].getNumberOfNeurons(); j++)
+#pragma omp parallel for 
+        for (int j = 0; j < layers[i].getNumberOfNeurons(); j++)
         {
             // New bias =       old bias     -  calculated delta bias
-            newBias = thisLayer[j].getBias() - thisLayer[j].getDeltaBias();
+            double newBias = thisLayer[j].getBias() - thisLayer[j].getDeltaBias();
 
             // Setting new bias
             thisLayer[j].setBias(newBias);
@@ -234,10 +219,10 @@ void Network::adamOptimization(double learningRate, double beta1, double beta2, 
 
     // Perform Adam optimization for each neuron's bias
 #pragma omp parallel for collapse(2) schedule(dynamic)
-    for (unsigned i = 1; i < layers.size(); i++)
+    for (int i = 1; i < layers.size(); i++)
     {
         Neuron* thisLayer = layers[i].getThisLayer();
-        for (unsigned j = 0; j < layers[i].getNumberOfNeurons(); j++)
+        for (int j = 0; j < layers[i].getNumberOfNeurons(); j++)
         {
             // Update first and second moments
             double deltaBias = thisLayer[j].getDeltaBias();
@@ -269,8 +254,8 @@ void Network::rmspropOptimization(double learningRate, double decayRate, double 
     {
         Neuron* thisLayer = layers[i].getThisLayer();
 
-#pragma omp paralell for
-        for (unsigned j = 0; j < layers[i].getNumberOfNeurons(); j++) 
+#pragma omp parallel for
+        for (int j = 0; j < layers[i].getNumberOfNeurons(); j++) 
         {
             // Compute gradients
             double deltaBias = thisLayer[j].getDeltaBias();
@@ -296,8 +281,8 @@ void Network::adagradOptimization(double learningRate, double epsilon)
     {
         Neuron* thisLayer = layers[i].getThisLayer();
 
-#pragma omp paralell for
-        for (unsigned j = 0; j < layers[i].getNumberOfNeurons(); j++) 
+#pragma omp parallel for
+        for (int j = 0; j < layers[i].getNumberOfNeurons(); j++) 
         {
             // Compute gradients
             double deltaBias = thisLayer[j].getDeltaBias();
@@ -318,13 +303,13 @@ void Network::adagradOptimization(double learningRate, double epsilon)
 void Network::adadeltaOptimization(double decayRate, double epsilon)
 {
     // Iterate over each layer and neuron
-    for (unsigned i = 1; i < layers.size(); i++)
+    for (int i = 1; i < layers.size(); i++)
     {
         Neuron* thisLayer = layers[i].getThisLayer();
         Edge** edgeArray = edges[i - 1];
 
-#pragma omp paralell for
-        for (unsigned j = 0; j < layers[i].getNumberOfNeurons(); j++)
+#pragma omp parallel for
+        for (int j = 0; j < layers[i].getNumberOfNeurons(); j++)
         {
             // Compute gradients
             double deltaBias = thisLayer[j].getDeltaBias();
@@ -350,11 +335,12 @@ void Network::adadeltaOptimization(double decayRate, double epsilon)
 void Network::nagOptimization(double learningRate, double momentum) 
 {
     // Iterate over each layer and neuron
-    for (unsigned i = 1; i < layers.size(); i++) 
+    for (int i = 1; i < layers.size(); i++) 
     {
         Neuron* thisLayer = layers[i].getThisLayer();
-#pragma omp paralell for
-        for (unsigned j = 0; j < layers[i].getNumberOfNeurons(); j++) 
+
+#pragma omp parallel for
+        for (int j = 0; j < layers[i].getNumberOfNeurons(); j++) 
         {
             // Compute gradients
             double deltaBias = thisLayer[j].getDeltaBias();
@@ -379,12 +365,12 @@ void Network::adamaxOptimization(double learningRate, double beta1, double beta2
     double beta2Power = 1.0;
 
     // Iterate over each layer and neuron
-    for (unsigned i = 1; i < layers.size(); i++) 
+    for (int i = 1; i < layers.size(); i++) 
     {
         Neuron* thisLayer = layers[i].getThisLayer();
 
-#pragma omp paralell for
-        for (unsigned j = 0; j < layers[i].getNumberOfNeurons(); j++) 
+#pragma omp parallel for
+        for (int j = 0; j < layers[i].getNumberOfNeurons(); j++) 
         {
             // Compute gradients
             double deltaBias = thisLayer[j].getDeltaBias();

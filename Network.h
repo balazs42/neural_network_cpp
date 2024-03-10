@@ -5,7 +5,7 @@
 
 #include <vector>	// Include for vector container
 #include <algorithm>// Include for random shuffle and etc.
-
+#include <random>
 #include <iostream>
 #include <string>
 
@@ -34,8 +34,12 @@ private:
 	bool useAdamaxOptimization;
 	bool useAdamOptimization;
 
+	// Random number generation using the modern <random> library
+	std::mt19937 gen; // Standard mersenne_twister_engine seeded with time()
+	std::uniform_real_distribution<> dis; // Uniform distribution between -1.0 and 1.0
+
 public:
-	Network() : layers(), edges(), 
+	Network() : layers(), edges(), gen(std::random_device{}()), dis(-1.0, 1.0),
 		useRmspropOptimization(false), useAdagradOptimization(false), useAdadeltaOptimization(false),
 		useNagOptimization(false), useAdamaxOptimization(false), useAdamOptimization(false) {}
 
@@ -105,9 +109,13 @@ public:
 			}
 		}
 
+		// Clearing layers vector
+		layers.clear();
+
 		// Creating the layers of neurons
 		for (unsigned i = 0; i < numNeurons.size(); i++)
 		{
+			std::cout << numNeurons[i] << "\n";
 			layers.push_back(Layer(numNeurons[i]));
 		}
 
@@ -196,7 +204,7 @@ private:
 private:
 	// Normalizing the given data to 1 - 0 range
 	template<typename T>
-	double* normalizeData(T* arr, unsigned num)
+	void normalizeData(T* arr, unsigned num, double* retArr)
 	{
 		// Initialize min and max with the extreme values of the data type
 		T max = std::numeric_limits<T>::lowest();
@@ -212,24 +220,24 @@ private:
 				min = arr[i];
 		}
 
+		// TODO: handle if all elements are the same
 		if (min == max)
 		{
 			throw out_of_range("Division by zero, check arrays, at noramlizing input or output!");
 			exit(-8);
 		}
+		double dMin = (double)min;
+		double dMax = (double)max;
 
 		// Normalize the data
 		for (unsigned i = 0; i < num; i++)
-			arr[i] = (arr[i] - min) / (max - min);
+			retArr[i] = (double)((arr[i] - dMin) / (dMax - dMin));
 
-		// Allocating double return array
-		double* retArr = new double[num];
-
-		// Converting everything to a double array
+		// Debug print:
+		std::cout << "Normalized input array\n";
 		for (unsigned i = 0; i < num; i++)
-			retArr[i] = (double)arr[i];
-
-		return retArr;
+			std::cout << retArr[i] << " ";
+		std::cout << "\n";
 	}
 
 	// Feedforward process on network
@@ -243,10 +251,18 @@ private:
 			throw out_of_range("Input array is larger then input layer, data will be lost, check code if this is a problem!");
 		}
 
+		// Debug print input array
+		std::cout << "Input array\n";
+		for (unsigned i = 0; i < num; i++)
+			std::cout << inputArr[i] << " ";
+		std::cout << "\n";
+
 		// 1st step is normalizing input array, to 0-1 values, and setting first layers activations as these values
 
+
 		// Normalizing data
-		double* normalizedInput = normalizeData(inputArr, num);
+		double* normalizedInput = new double[num];
+		normalizeData(inputArr, num, normalizedInput);
 
 		// Setting first layer's activations
 		Neuron* firstLayer = layers[0].getThisLayer();
@@ -255,11 +271,15 @@ private:
 		for (unsigned i = 0; i < num; i++)
 			firstLayer[i].setActivation(normalizedInput[i]);
 
+		// Debug print in input layer
+		for (unsigned i = 0; i < num; i++)
+			std::cout << "Input: " << normalizedInput[i] << " Activation: " << firstLayer[i].getActivation() << "\n";
+
 		// Starting feedforward process
-		for (unsigned i = 0; i < layers.size() - 1; i++)
+		for (int i = 0; i < layers.size() - 1; i++)
 		{
 			// Iterationg through each neuron in the right layer
-			for (unsigned j = 0; j < layers[i + 1].getNumberOfNeurons(); j++)
+			for (int j = 0; j < layers[i + 1].getNumberOfNeurons(); j++)
 			{
 				// Neuron array on the right side
 				Neuron* rightLayer = layers[i + 1].getThisLayer();
@@ -269,7 +289,8 @@ private:
 
 				double z = 0.0f;
 				// Iterating through each neuron in left layer
-				for (unsigned k = 0; k < layers[i].getNumberOfNeurons(); k++)
+#pragma omp parallel for reduction(+:z)
+				for (int k = 0; k < layers[i].getNumberOfNeurons(); k++)
 				{
 					// calc    =        left activation       *       edge between         
 					z += leftLayer[k].getActivation() * edges[i][k][j].getWeight();
@@ -284,6 +305,21 @@ private:
 				z = rightLayer[j].activateNeuron(rightLayer[j].getZ());
 				rightLayer[j].setActivation(z);
 			}
+		}
+
+		// Free allocated memory
+		delete[] normalizedInput;
+		
+		// Debug print
+		std::cout << "Activations in the network\n";
+		for (unsigned i = 0; i < layers.size(); i++)
+		{
+			Neuron* thisLayer = layers[i].getThisLayer();
+			for (unsigned j = 0; j < layers[i].getNumberOfNeurons(); j++)
+			{
+				std::cout << thisLayer[j].getActivation() << " ";
+			}
+			std::cout << "\n";
 		}
 	}
 
@@ -301,19 +337,22 @@ private:
 		// First error calculation in the last layer based on the given expected array
 
 		// Normalizing expected array
-		double* normalizedExpected = normalizeData(expectedArray, num);
+		double* normalizedExpected = new double[num];
+		normalizeData(expectedArray, num, normalizedExpected);
 
 		Neuron* lastLayer = layers[layers.size() - 1].getThisLayer();
 
 		// Parallelize error calculation for each neuron in the last layer
 #pragma omp parallel for
-		for (unsigned i = 0; i < num; i++)
+		for (int i = 0; i < num; i++)
 		{
 			// Cost function is: E = (a^L - y)^2, d/dE = 2 * (a^L - y) , where y is the expected value at a given index, and a^L is the L-th layer's activation at the given index
 			// So the error should be calculated like this: 
 			//           Error =  2 *       activation             -  ||expected value||
 			lastLayer[i].setError(2 * lastLayer[i].getActivation() - normalizedExpected[i]);
 		}
+
+		delete[] normalizedExpected;
 	}
 
 	void calculateDeltaActivation();
@@ -390,7 +429,7 @@ private:
 		for (unsigned epoch = 0; epoch < epochNum; ++epoch)
 		{
 			// Iterate over each training example
-#pragma omp parallel for
+//#pragma omp parallel for
 			for (unsigned i = 0; i < inArr.size(); ++i)
 			{
 				// Perform backpropagation and update parameters for each training example
@@ -423,13 +462,13 @@ private:
 		const unsigned numExamples = inArr.size();
 
 		// Perform minibatch gradient descent for each epoch
-		for (unsigned epoch = 0; epoch < epochNum; ++epoch)
+		for (int epoch = 0; epoch < epochNum; ++epoch)
 		{
 			// Iterate over the training examples in minibatches
 #pragma omp parallel for
-			for (unsigned startIdx = 0; startIdx < numExamples; startIdx += minibatchSize)
+			for (int startIdx = 0; startIdx < numExamples; startIdx += minibatchSize)
 			{
-				unsigned endIdx = std::min(startIdx + minibatchSize, numExamples);
+				int endIdx = std::min(startIdx + minibatchSize, numExamples);
 
 				// Extract the minibatch
 				vector<T1*> minibatchInArr(inArr.begin() + startIdx, inArr.begin() + endIdx);
