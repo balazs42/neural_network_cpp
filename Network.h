@@ -234,7 +234,7 @@ private:
 			retArr[i] = (double)((arr[i] - dMin) / (dMax - dMin));
 
 		// Debug print:
-		std::cout << "Normalized input array\n";
+		std::cout << "Normalized array\n";
 		for (unsigned i = 0; i < num; i++)
 			std::cout << retArr[i] << " ";
 		std::cout << "\n";

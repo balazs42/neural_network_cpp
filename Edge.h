@@ -16,21 +16,24 @@ private:
 	double error;			// Calcuated error on the edge
 	double deltaWeight;		// Calculated delta weight on the edge
 	double deltaWeightAvg;	// Average delta weight for optimization algorithms
+	double squaredGradientAvg;
 
 public:
-	Edge() : weight(0.0f), error(0.0f), deltaWeight(0.0f), deltaWeightAvg(0.0f) {}
+	Edge() : weight(0.0f), error(0.0f), deltaWeight(0.0f), deltaWeightAvg(0.0f), squaredGradientAvg(0.0f) {}
 
 	// Getter functions
 	double getWeight() const { return weight; }
 	double getError() const { return error; }
 	double getDeltaWeight() const { return deltaWeight; }
 	double getDeltaWeightAvg() const { return deltaWeightAvg; }
+	double getSquaredGradientAvg() const { return squaredGradientAvg; }
 
 	// Setter functions
 	void setWeight(double parameter) { weight = parameter; }
 	void setError(double parameter) { error = parameter; }
 	void setDeltaWeight(double parameter) { deltaWeight = parameter; }
-	void setDeltaWeightAvg(double avg) { deltaWeightAvg = avg; }
+	void setDeltaWeightAvg(double parameter) { deltaWeightAvg = parameter; }
+	void setSquaredGradientAvg(double parameter) { squaredGradientAvg = parameter; }
 
 	void saveEdgeToXML(std::ofstream& outFile) 
 	{
