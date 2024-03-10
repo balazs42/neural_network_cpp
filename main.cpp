@@ -29,7 +29,7 @@ int main()
 
 		// First define the number of neurons in each layer
 		// each layer should have a numerical value greater then 0
-		vector<unsigned> layerSizes = { inSize, 10, 10, expectedSize };
+		vector<unsigned> layerSizes = { inSize, 100, 100, expectedSize };
 
 		// Create network object, with the specified optimization and regularization and initialization techniques
 		Network network(layerSizes, "adam", "L1", "Xavier");

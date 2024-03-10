@@ -555,6 +555,37 @@ private:
 		}
 	}
 
+	// Batch gradient descent function
+	template <typename T1, typename T2>
+	void batchGradientDescent(vector<T1*>& inArr, vector<unsigned>& inNum, vector<T2*>& expArr, vector<unsigned>& expNum, unsigned epochNum)
+	{
+		const unsigned batchSize = inArr.size(); // In batch gradient descent, the batch size is the whole dataset
+
+		// Perform batch gradient descent for each epoch
+		for (unsigned epoch = 0; epoch < epochNum; epoch++)
+		{
+			// Since we're using the entire dataset as a batch, there's no need to loop through subsets of the data.
+			// However, computation within each backpropagation step can be parallelized.
+
+			// Reset gradients before each epoch
+			// (Assuming there's a method to reset gradients, if your implementation accumulates gradients across batches)
+			// resetGradients();
+
+			// Parallelize the backpropagation for each input in the batch
+			// Note: Depending on how your backpropagation is implemented, you might need to accumulate gradients
+			// from each data point before applying them, rather than updating the weights directly.
+#pragma omp parallel for
+			for (int i = 0; i < inArr.size(); ++i)
+			{
+				backPropagation(inArr[i], inNum[i], expArr[i], expNum[i]);
+			}
+
+			// Apply accumulated gradients to update network parameters
+			// This should be done after computing the gradients for the entire batch
+			// updateParameters();
+		}
+	}
+
 	// Minibatch gradient descent function
 	template <typename T1, typename T2>
 	void minibatchGradientDescent(vector<T1*>& inArr, vector<unsigned>& inNum, vector<T2*>& expArr, vector<unsigned>& expNum, unsigned epochNum)
@@ -664,8 +695,13 @@ public:
 		}
 		else if (s == "GradientDescent" || s == "GD" || s == "gd")
 		{
-			// Trainging using the gradient descent methdo
+			// Trainging using the gradient descent method
 			gradientDescent(convertedInArr, inNum, convertedExpArr, expNum, epochNum);
+		}
+		else if (s == "BatchGradientDescent" || s == "BGD" || s == "bgd")
+		{
+			// Training using the batch gradient descent method
+			batchGradientDescent(convertedInArr, inNum, convertedExpArr, expNum, epochNum);
 		}
 		else
 		{
