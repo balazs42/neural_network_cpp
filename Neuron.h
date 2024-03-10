@@ -1,5 +1,8 @@
+#pragma once
+
 #ifndef _NEURON_H_
 #define _NEURON_H_
+
 
 #include <iostream>
 #include <string>
