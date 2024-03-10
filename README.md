@@ -24,8 +24,9 @@ My take on the backpropagation algorithm, classes used for the project are highl
 
  This is an example of how you could use this repository
 
- <code>
-int main(void)
+<code>
+// This is an example of how you could use this repository
+int main()
 {
 	try
 	{
@@ -37,13 +38,24 @@ int main(void)
 		// each layer should have a numerical value greater then 0
 		vector<unsigned> layerSizes = { inSize, 50, 50, expectedSize };
 
-		// Create network object, with the specified 
-		Network network(layerSizes, false);
+		// Create network object, with the specified optimization and regularization techniques
+		Network network(layerSizes, "adam", "none", "none");
 
 		// You can randinit all edges and biases, in the network, although it is not
 		// necessary, the constructor already does it, but if for some reason you want
 		// to reinit the network you have the possibility
 		network.randInitNetwork();
+
+		// You can set different activation functions to the layers
+		// you cannot pass more strings then the number of layers
+		vector<string> activationFunctions = { "Sigmoid", "Relu", "Sigmoid", "Tanh" };
+
+		// You can set all the network to 1 specific activation function
+		network.setAllActivationFunctions("Relu");
+
+		// Or by passing the vector as an argument, you can set different
+		// activation functions to different layers
+		network.setLayerActivationFunctions(activationFunctions);
 
 		//-----------------------------------//
 
@@ -51,13 +63,13 @@ int main(void)
 		// to some numerical type array, then pass it to the network.
 
 		// Creating artificial input frames
-		unsigned* firstFrame = new unsigned[inSize] {1, 2, 3, 4};
-		unsigned* secondFrame = new unsigned[inSize] {2, 3, 4, 5};
-		unsigned* thirdFrame = new unsigned[inSize] {10, 9, 8, 11};
-		unsigned* fourthFrame = new unsigned[inSize] {1, 0, 12, 3};
+		vector<unsigned> firstFrame =  {1, 2, 3, 4};
+		vector<unsigned> secondFrame = {2, 3, 4, 5};
+		vector<unsigned> thirdFrame =  {10, 9, 8, 11};
+		vector<unsigned> fourthFrame = {1, 0, 12, 3};
 
 		// Creating input vector of frames
-		vector<unsigned*> inputArr;
+		vector<vector<unsigned>> inputArr;
 
 		// Adding frames to input array
 		inputArr.push_back(firstFrame);
@@ -68,12 +80,12 @@ int main(void)
 		//-----------------------------------//
 
 		// Creating artificial expected array
-		unsigned* firstExpected = new unsigned[expectedSize]  {1, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-		unsigned* secondExpected = new unsigned[expectedSize] {0, 0, 1, 0, 0, 0, 0, 0, 0, 0};
-		unsigned* thirdExpected = new unsigned[expectedSize]  {0, 0, 0, 0, 1, 0, 0, 0, 0, 0};
-		unsigned* fourthExpected = new unsigned[expectedSize] {0, 0, 0, 0, 0, 0, 1, 0, 0, 0};
+		vector<unsigned> firstExpected =  {1, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+		vector<unsigned> secondExpected = {0, 0, 1, 0, 0, 0, 0, 0, 0, 0};
+		vector<unsigned> thirdExpected =  {0, 0, 0, 0, 1, 0, 0, 0, 0, 0};
+		vector<unsigned> fourthExpected = {0, 0, 0, 0, 0, 0, 1, 0, 0, 0};
 
-		vector<unsigned*> expArr;
+		vector<vector<unsigned>> expArr;
 
 		expArr.push_back(firstExpected);
 		expArr.push_back(secondExpected);
@@ -83,12 +95,19 @@ int main(void)
 		//-----------------------------------//
 
 		// Training network, with the provided data
-		network.trainNetwork("GradientDescent",												// Training method type
-							 inputArr,														// Your created input vector of arrays
-							 { inSize, inSize, inSize, inSize },							// Number of elements in each input array
-							 expArr,														// Your expected vector of arrays
-							 { expectedSize, expectedSize, expectedSize, expectedSize },	// Number of elements in the expected vector of arrays
-							 10000															// Number of epochs
-		);
+		network.trainNetwork("SGD", inputArr, expArr, 100);
+	}
+	catch (std::out_of_range)
+	{
+
+	}
+	catch(...)
+	{
+
+	}
+
+
+
+	return 0;
 }
 </code>
