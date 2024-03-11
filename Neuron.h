@@ -11,6 +11,8 @@
 #include <math.h>	// For activations functions
 #include <iostream>	// String handling
 #include <exception>// Exception handling
+#include <cmath>
+#include <algorithm>
 
 using std::string;
 using std::out_of_range;
@@ -45,8 +47,8 @@ private:
 public:
 	Neuron() : activation(0.0f), bias(0.0f), error(0.0f), z(0.0f), activationFunction(&Sigmoid),
 		derivativeActivationFunction(&DSigmoid), deltaActivation(0.0f), deltaBias(0.0f), 
-		firstMoment(0.0f), secondMoment(0.0f),
-		squaredGradientAvg(0.0f), squaredGradientSum(0.0f)
+		firstMoment(1.0f), secondMoment(1.0f),
+		squaredGradientAvg(1.0f), squaredGradientSum(1.0f)
 	{}
 
 	bool operator==(const Neuron& other)
@@ -118,6 +120,10 @@ private:
 	static double DLeakyRelu(double z);
 	static double ELU(double z);
 	static double DELU(double z);
+
+	// Min and max functions for clamping
+	static double max(double l, double r) { return (l > r) ? l : r; }
+	static double min(double l, double r) { return (l < r) ? l : r; }
 public:
 	void setActivationFunction(const string& s);
 	double activateNeuron() { return (this->activationFunction)(z); }

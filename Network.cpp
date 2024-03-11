@@ -301,35 +301,54 @@ void Network::calculateDeltaWeight()
  */
 void Network::setNewParameters()
 {
-    // Setting new weights for edges
-#pragma omp parallel for collapse(3)
-    for (int i = 0; i < edges.size(); i++)
+    // If certain regularization technique is selected, then 
+    // updating weights with respect to the regularization
+    // technique
+    if (useRegularization())
     {
-        for (int j = 0; j < layers[i].getNumberOfNeurons(); j++)
+    }
+    else
+    {
+        // Setting new weights for edges
+    #pragma omp parallel for collapse(3)
+        for (int i = 0; i < edges.size(); i++)
         {
-            for (int k = 0; k < layers[i + 1].getNumberOfNeurons(); k++)
+            for (int j = 0; j < layers[i].getNumberOfNeurons(); j++)
             {
-                // New weight =         old weigth     -      calculated delta weight
-                double newWeight = edges[i][j][k].getWeight() - edges[i][j][k].getDeltaWeight();
+                for (int k = 0; k < layers[i + 1].getNumberOfNeurons(); k++)
+                {
+                    // New weight =         old weigth     -      calculated delta weight
+                    double newWeight = edges[i][j][k].getWeight() - edges[i][j][k].getDeltaWeight();
                 
-                // Setting new weight
-                edges[i][j][k].setWeight(newWeight);
+                    // Setting new weight
+                    edges[i][j][k].setWeight(newWeight);
+                }
             }
         }
     }
-
-    // Setting new biases for each neuron in each layer
-    for (int i = 0; i < layers.size(); i++)
+    
+    // If a certain optimization method is selected, then updating 
+    // biases with the given optimization technique, if none is selected
+    // then applying basic gradient descent calculated baises
+    if (useOptimization())
     {
-        Neuron* thisLayer = layers[i].getThisLayer();
-#pragma omp parallel for 
-        for (int j = 0; j < layers[i].getNumberOfNeurons(); j++)
+        // If optimization ran
+    }
+    else
+    {
+        // Setting new biases for each neuron in each layer
+        for (int i = 0; i < layers.size(); i++)
         {
-            // New bias =       old bias     -  calculated delta bias
-            double newBias = thisLayer[j].getBias() - thisLayer[j].getDeltaBias();
+            Neuron* thisLayer = layers[i].getThisLayer();
+#pragma omp parallel for 
+            for (int j = 0; j < layers[i].getNumberOfNeurons(); j++)
+            {
+                // New bias =       old bias     -  calculated delta bias
+                double newBias = thisLayer[j].getBias() - thisLayer[j].getDeltaBias();
 
-            // Setting new bias
-            thisLayer[j].setBias(newBias);
+                // Setting new bias
+                thisLayer[j].setBias(newBias);
+            }
         }
     }
 }
@@ -376,9 +395,8 @@ void Network::setNewParameters()
  */
 void Network::adamOptimization(double learningRate, double beta1, double beta2, double epsilon)
 {
-    // Initialize Adam parameters
-    double beta1Power = 1.0;
-    double beta2Power = 1.0;
+    double beta1pow = this->getBeta1Power();
+    double beta2pow = this->getBeta2Power();
 
     // Perform Adam optimization for each neuron's bias
     // Adam Equation:
@@ -394,7 +412,9 @@ void Network::adamOptimization(double learningRate, double beta1, double beta2, 
     for (int i = 1; i < layers.size(); i++)
     {
         Neuron* thisLayer = layers[i].getThisLayer();
-        for (int j = 0; j < layers[i].getNumberOfNeurons(); j++)
+        unsigned layerSize = layers[i].getNumberOfNeurons();
+
+        for (int j = 0; j < layerSize; j++)
         {
             // Update first and second moments
             // Equation 1: Update first moment (m_t)
@@ -411,11 +431,11 @@ void Network::adamOptimization(double learningRate, double beta1, double beta2, 
             // Apply bias correction for both moments
             // Equation 3: Bias-corrected first moment estimate (m_hat_t)
             // m_hat_t = m_t / (1 - beta1^t)
-            double firstMomentCorrected = thisLayer[j].getFirstMoment() / (1 - beta1Power);
+            double firstMomentCorrected = thisLayer[j].getFirstMoment() / (1.0f - beta1pow);
             
             // Equation 4: Bias-corrected second moment estimate (v_hat_t)
             // v_hat_t = v_t / (1 - beta2^t)
-            double secondMomentCorrected = thisLayer[j].getSecondMoment() / (1 - beta2Power);
+            double secondMomentCorrected = thisLayer[j].getSecondMoment() / (1.0f - beta2pow);
 
             // Update parameters
             // Equation 5: Update parameters (theta_t+1)
@@ -426,8 +446,8 @@ void Network::adamOptimization(double learningRate, double beta1, double beta2, 
     }
 
     // Update power factors for beta1 and beta2 for next iteration
-    beta1Power *= beta1;
-    beta2Power *= beta2;
+    this->setBeta1Power(this->getBeta1Power() * beta1);
+    this->setBeta1Power(this->getBeta1Power() * beta1);
 }
 
 /**
@@ -450,9 +470,10 @@ void Network::rmspropOptimization(double learningRate, double decayRate, double 
     for (unsigned i = 1; i < layers.size(); i++) 
     {
         Neuron* thisLayer = layers[i].getThisLayer();
+        unsigned layerSize = layers[i].getNumberOfNeurons();
 
 #pragma omp parallel for
-        for (int j = 0; j < layers[i].getNumberOfNeurons(); j++) 
+        for (int j = 0; j < layerSize; j++) 
         {
             // Compute gradients and update moving average of squared gradients
             // Equation 1: E[g^2]_t = decayRate * E[g^2]_{t-1} + (1 - decayRate) * g_t^2
@@ -488,9 +509,10 @@ void Network::adagradOptimization(double learningRate, double epsilon)
     for (unsigned i = 1; i < layers.size(); i++) 
     {
         Neuron* thisLayer = layers[i].getThisLayer();
+        unsigned layerSize = layers[i].getNumberOfNeurons();
 
 #pragma omp parallel for
-        for (int j = 0; j < layers[i].getNumberOfNeurons(); j++) 
+        for (int j = 0; j < layerSize; j++) 
         {
             // Compute the gradient for the neuron's bias
             double deltaBias = thisLayer[j].getDeltaBias();
@@ -586,10 +608,11 @@ void Network::nagOptimization(double learningRate, double momentum)
     for (int i = 1; i < layers.size(); i++) 
     {
         Neuron* thisLayer = layers[i].getThisLayer();
+        unsigned layerSize = layers[i].getNumberOfNeurons();
 
         // NAG update rule for each neuron's bias
 #pragma omp parallel for
-        for (int j = 0; j < layers[i].getNumberOfNeurons(); j++) 
+        for (int j = 0; j < layerSize; j++) 
         {
             // Compute the look-ahead gradient
             // The look-ahead is achieved by first moving in the direction of the previous momentum
@@ -624,46 +647,46 @@ void Network::nagOptimization(double learningRate, double momentum)
  */
 void Network::adamaxOptimization(double learningRate, double beta1, double beta2, double epsilon)
 {
+    double beta1pow = this->getBeta1Power();
 
     // Adamax is a variant of Adam based on the infinity norm.
     // Adamax Equations are similar to Adam but uses max operation instead of sum for second moment.
     // This makes it suitable for embeddings and sparse data.
     // theta_t+1 = theta_t - learningRate / (1 - beta1^t) * m_t / (max(v_t, epsilon))
-
-    // Initialize beta1Power and beta2Power
-    double beta1Power = 1.0;
-    double beta2Power = 1.0;
-
+    // 
     // Iterate over each layer and neuron
     for (int i = 1; i < layers.size(); i++)
     {
         Neuron* thisLayer = layers[i].getThisLayer();
+        unsigned layerSize = layers[i].getNumberOfNeurons();
 
         // Adamax update rule for each neuron's bias
 #pragma omp parallel for
-        for (int j = 0; j < layers[i].getNumberOfNeurons(); j++)
+        for (int j = 0; j < layerSize; j++)
         {
             // Update first moment (mean) similar to Adam
             // Update the second moment using the max operation, not the sum of squares
             // This change is what differentiates Adamax from Adam
             double deltaBias = thisLayer[j].getDeltaBias();
 
-            double firstMoment = beta1 * thisLayer[j].getFirstMoment() + (1 - beta1) * deltaBias;
+            double firstMoment = beta1 * thisLayer[j].getFirstMoment() + (1.0f - beta1) * deltaBias;
             double secondMoment = fmax(beta2 * thisLayer[j].getSecondMoment(), fabs(deltaBias));
-
-            // Update bias using the learning rate, firstMoment, secondMoment, and epsilon
-            double updatedBias = thisLayer[j].getBias() - (learningRate / (1 - beta1Power)) * (firstMoment / (secondMoment + epsilon));
-            thisLayer[j].setBias(updatedBias);
-
-            // Update beta1Power and beta2Power
-            beta1Power *= beta1;
-            beta2Power *= beta2;
 
             // Update first and second moments for the neuron
             thisLayer[j].setFirstMoment(firstMoment);
             thisLayer[j].setSecondMoment(secondMoment);
+
+            // Update bias using the learning rate, first moment, second moment, and epsilon
+            // Bias-corrected first moment is used, but not the second moment, as per Adamax formula
+            double mCorrected = firstMoment / (1.0 - beta1pow);
+            double updatedBias = thisLayer[j].getBias() - (learningRate / (1.0f - beta1pow)) * (mCorrected / (std::max(secondMoment, epsilon)));
+            thisLayer[j].setBias(updatedBias);
         }
     }
+    // Update beta1Power for the next epoch
+    // This should be done once per epoch, so if this function is called multiple times within an epoch,
+    // ensure that beta1Power is only updated at the end of the epoch.
+    this->setBeta1Power(this->getBeta1Power() * beta1);
 }
 
 /***************************************/

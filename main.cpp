@@ -35,19 +35,19 @@ int main()
 		vector<unsigned> layerSizes = { inSize, 10, expectedSize };
 
 		// Create network object, with the specified optimization and regularization and initialization techniques
-		Network network(layerSizes, "Adam", "none", "Xavier");
+		Network network(layerSizes, "adam", "none", "Xavier");
 
 		// You can randinit all edges and biases, in the network, although it is not
 		// necessary, the constructor already does it, but if for some reason you want
 		// to reinit the network you have the possibility
-		network.randInitNetwork();
+		//network.randInitNetwork();
 
 		// You can set different activation functions to the layers
 		// you cannot pass more strings then the number of layers
 		vector<string> activationFunctions = { "Sigmoid", "Relu", "Sigmoid", "Tanh" };
 
 		// You can set all the network to 1 specific activation function
-		network.setAllActivationFunctions("Relu");
+		network.setAllActivationFunctions("Sigmoid");
 
 		// Or by passing the vector as an argument, you can set different
 		// activation functions to different layers
@@ -91,14 +91,14 @@ int main()
 		//-----------------------------------//
 
 		// Training network, with the provided data
-		network.trainNetwork("GD", inputArr, expArr, 100);
+		network.trainNetwork("gd", inputArr, expArr, 100);
 
 		//-----------------------------------//
 
 		// Testing the network
 
 		// Creating artificial test frames
-		unsigned testFrame1[inSize] = { 1, 0, 12, 3 };
+		unsigned testFrame1[inSize] = { 1, 2, 3, 4 };
 		unsigned testFrame2[inSize] = { 1, 0, 11, 3 };
 
 		vector<unsigned*> testFrames;

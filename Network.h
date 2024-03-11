@@ -20,6 +20,9 @@
 using std::vector;
 using std::string;
 
+const double beta1PowerStarter = 0.9f;		// Starter values to beta1power and beta2power's for adam optimization
+const double beta2PowerStarter = 0.999f;
+
 class Network
 {
 private:
@@ -45,6 +48,9 @@ private:
 
 	double dropoutRate; // Probability of dropping out a neuron in applicable layers ranging: [0.2 0.5]
 
+	double beta1Power;	// Decay rate for adam optimization
+	double beta2Power;
+
 	// Random number generation using the modern <random> library
 	std::mt19937 gen; // Standard mersenne_twister_engine seeded with time()
 	std::uniform_real_distribution<> dis; // Uniform distribution between -1.0 and 1.0
@@ -53,7 +59,11 @@ public:
 	Network() : layers(), edges(), gen(std::random_device{}()), dis(-1.0, 1.0),
 		useRmspropOptimization(false), useAdagradOptimization(false), useAdadeltaOptimization(false),
 		useNagOptimization(false), useAdamaxOptimization(false), useAdamOptimization(false),
-	    useL1(false), useL2(false), useDropout(false), dropoutRate(0.5f), useWe(false), useXavier(false) {}
+		useL1(false), useL2(false), useDropout(false), dropoutRate(0.5f), useWe(false), useXavier(false)
+	{
+		beta1Power = beta1PowerStarter;
+		beta2Power = beta2PowerStarter;
+	}
 
 	/**
 	 * Constructs a neural network with specified configurations for optimization, regularization, initialization techniques, and dropout rate.
@@ -72,6 +82,9 @@ public:
 		useNagOptimization(false), useAdamaxOptimization(false), useAdamOptimization(false),
 		useL1(false), useL2(false), useDropout(false), dropoutRate(dpr), useWe(false), useXavier(false)
 	{
+		beta1Power = beta1PowerStarter;
+		beta2Power = beta2PowerStarter;
+
 		// Choosing optimization technique
 		if (opt == "RMS" || opt == "rms")
 			useRmspropOptimization = true;
@@ -155,9 +168,11 @@ public:
 			edges.push_back(tmp);
 		}
 
+		// By default initializing with random weights and biases
 		// Initializing network
 		randInitNetwork();
 
+		// If initialization technique is selected, then applying it
 		if (useWe)
 			initializeWeightsHe();
 		else if (useXavier)
@@ -184,7 +199,13 @@ public:
 
 	// Setter for dropout rate
 	void setDropoutRate(double parameter) { dropoutRate = parameter; }
-public:
+
+	// Set beta 1 power
+	void setBeta1Power(double parameter) { beta1Power = parameter; }
+
+	// Set beta 2 power
+	void setBeta2Power(double parameter) { beta2Power = parameter; }
+
 	// Getter functions
 	vector<Edge**> getEdges() const { return edges; }
 	vector<Layer> getLayers() const { return layers; }
@@ -215,6 +236,10 @@ public:
 		return reg;
 	}
 	double getDropoutRate() const { return dropoutRate; }
+
+	// Getter for beta 1 and beta 2
+	double getBeta1Power() const { return beta1Power; }
+	double getBeta2Power() const { return beta2Power; }
 
 private:
 
@@ -426,25 +451,46 @@ private:
 	void adagradOptimization(double learningRate = 0.01f, double epsilon = 1e-8f);
 	void adadeltaOptimization(double decayRate = 0.9f, double epsilon = 1e-8f);
 	void nagOptimization(double learningRate = 0.001f, double momentum = 0.9f);
-	void adamaxOptimization(double learningRate = 0.002f, double beta1 = 0.9f, double beta2 = 0.999f, double epsilon = 1e-8f);
-	void adamOptimization(double learningRate = 0.001f, double beta1 = 0.9f, double beta2 = 0.999f, double epsilon = 1e-8f);
+	void adamaxOptimization(double learningRate = 0.0005f, double beta1 = 0.9f, double beta2 = 0.999f, double epsilon = 1e-8f);
+	void adamOptimization(double learningRate = 0.0005f, double beta1 = 0.9f, double beta2 = 0.999f, double epsilon = 1e-8f);
 
 	// If there is a selected optimization method, then using it
-	void useOptimization() 
+	// @return true if optimization is applied false if not
+	bool useOptimization() 
 	{
 		// Using the given optimization techniwue
 		if (useRmspropOptimization)
+		{
 			rmspropOptimization();
+			return true;
+		}
 		else if (useAdagradOptimization)
+		{
 			adagradOptimization();
+			return true;
+		}
 		else if (useAdadeltaOptimization)
+		{
 			adadeltaOptimization();
+			return true;
+		}
 		else if (useNagOptimization)
+		{
 			nagOptimization();
+			return true;
+		}
 		else if (useAdamaxOptimization)
+		{
 			adamaxOptimization();
+			return true;
+		}
 		else if (useAdamOptimization)
+		{
 			adamOptimization();
+			return true;
+		}
+
+		return false;
 	}
 
 	/***************************************/
@@ -462,12 +508,20 @@ private:
 	void applyDropoutRegularization();
 
 	// Applying regularization technique, if selected
-	void useRegularization()
+	// @return true if regularization is used false if not
+	bool useRegularization()
 	{
 		if (useL1)
+		{
 			applyL1Regularization();
+			return true;
+		}
 		else if (useL2)
+		{
 			applyL2Regularization();
+			return true;
+		}
+		return false;
 	}
 private:
 
@@ -477,10 +531,6 @@ private:
 	template <typename T1, typename T2>
 	void backPropagation(T1* inputArr, unsigned inNum, T2* expectedArr, unsigned expNum)
 	{
-		// Debug print
-		std::cout << "Before iteration\n";
-		printNetwork();
-
 		// Feedforward process
 		feedForwardNetwork(inputArr, inNum);
 
@@ -506,14 +556,10 @@ private:
 			calculateDeltaWeight();
 		}
 
-		// Applying regularization to the network, if there is a selected one
-		useRegularization();
-
 		// Setting new parameters to the network
+		// Applying optimization and regularization
+		// technique is inside of this function
 		setNewParameters();
-
-		// Applying optimization technique to the network, if there is a selected one
-		useOptimization();
 
 		// Debug print
 		std::cout << "\nAfter iteration\n";
@@ -527,8 +573,11 @@ private:
 		// Perform stochastic gradient descent for each epoch
 		for (unsigned epoch = 0; epoch < epochNum; ++epoch)
 		{
+			// Resetting beta1 and beta2 power variables for each epoch
+			beta1Power = beta1PowerStarter;
+			beta2Power = beta2PowerStarter;
+
 			// Iterate over each training example
-//#pragma omp parallel for
 			for (unsigned i = 0; i < inArr.size(); ++i)
 			{
 				// Perform backpropagation and update parameters for each training example
@@ -544,6 +593,10 @@ private:
 		// Perform gradient descent for each epoch
 		for (unsigned epoch = 0; epoch < epochNum; ++epoch)
 		{
+			// Resetting beta1 and beta2 power variables for each epoch
+			beta1Power = beta1PowerStarter;
+			beta2Power = beta2PowerStarter;
+
 			for (unsigned i = 0; i < inArr.size(); i++)
 			{
 				// Perform backpropagation and update parameters for the entire dataset
@@ -561,6 +614,10 @@ private:
 		// Perform batch gradient descent for each epoch
 		for (unsigned epoch = 0; epoch < epochNum; epoch++)
 		{
+			// Resetting beta1 and beta2 power variables for each epoch
+			beta1Power = beta1PowerStarter;
+			beta2Power = beta2PowerStarter;
+
 			// Since we're using the entire dataset as a batch, there's no need to loop through subsets of the data.
 			// However, computation within each backpropagation step can be parallelized.
 
@@ -571,7 +628,6 @@ private:
 			// Parallelize the backpropagation for each input in the batch
 			// Note: Depending on how your backpropagation is implemented, you might need to accumulate gradients
 			// from each data point before applying them, rather than updating the weights directly.
-#pragma omp parallel for
 			for (int i = 0; i < inArr.size(); ++i)
 			{
 				backPropagation(inArr[i], inNum[i], expArr[i], expNum[i]);
@@ -594,8 +650,11 @@ private:
 		// Perform minibatch gradient descent for each epoch
 		for (int epoch = 0; epoch < epochNum; ++epoch)
 		{
+			// Resetting beta1 and beta2 power variables for each epoch
+			beta1Power = beta1PowerStarter;
+			beta2Power = beta2PowerStarter;
+
 			// Iterate over the training examples in minibatches
-#pragma omp parallel for
 			for (int startIdx = 0; startIdx < numExamples; startIdx += minibatchSize)
 			{
 				int endIdx = std::min(startIdx + minibatchSize, numExamples);
@@ -740,18 +799,37 @@ public:
 		// Activations in the network
 		std::cout << "Activations : ";
 		for (unsigned i = 0; i < sizeOut; i++)
-			std::cout << "A" << i << ":\t" << layers[layers.size() - 1].getThisLayer()[i].getActivation();
+			std::cout << "A" << i << ":" << layers[layers.size() - 1].getThisLayer()[i].getActivation() << " ";
 		std::cout << "End of activations\n";
-
-		// Printing the network to the standard output
-		printNetwork();
 
 		// Calculating error
 #pragma omp parallel for reduction(+:error)
 		for (int i = 0; i < layers[layers.size() - 1].getNumberOfNeurons(); i++)
-			error += sqrt(pow(layers[layers.size() - 1].getThisLayer()[i].getActivation(), 2) - pow(expOut[i], 2));
+			error += sqrt(pow(layers[layers.size() - 1].getThisLayer()[i].getActivation(), 2) - pow((double)expOut[i], 2));
 
 		std::cout << "\nFrame Error: " << error << "\n";
+
+		// Printing maxes
+		std::cout << "\n";
+		
+		double minDiff = 99999999.0f;
+		unsigned minIdx = 0;
+		double diff = 0.0f;
+
+		for (int i = 0; i < layers[layers.size() - 1].getNumberOfNeurons(); i++)
+		{
+			diff = layers[layers.size() - 1].getThisLayer()[i].getActivation() - (double)expOut[i];
+			if (diff < minDiff)
+			{
+				minDiff = diff;
+				minIdx = i;
+			}
+		}
+
+		double minAct = layers[layers.size() - 1].getThisLayer()[minIdx].getActivation();
+		double minExp = (double)expOut[minIdx];
+
+		std::cout << "\nMin idx: " << minIdx << ", Difference: D = act - exp = " << minAct <<  " - " << minExp << " = " << minDiff << "\n";
 		return error;
 	}
 
