@@ -3,6 +3,9 @@
 
 // Provided by an MSC EE student of Budapest University of Technology and Economics
 
+// The backpropagation algorithm's implementation is highly based on this arcticle:
+// http://neuralnetworksanddeeplearning.com/chap2.html
+
 // Currently this project is in this state: WORK IN PROGRESS!
 // Neuron, Edge, Layer and Network classes are implemented, but 
 // they are not tested and not complete!
@@ -29,10 +32,10 @@ int main()
 
 		// First define the number of neurons in each layer
 		// each layer should have a numerical value greater then 0
-		vector<unsigned> layerSizes = { inSize, 100, 100, expectedSize };
+		vector<unsigned> layerSizes = { inSize, 10, expectedSize };
 
 		// Create network object, with the specified optimization and regularization and initialization techniques
-		Network network(layerSizes, "adam", "L1", "Xavier");
+		Network network(layerSizes, "Adam", "none", "Xavier");
 
 		// You can randinit all edges and biases, in the network, although it is not
 		// necessary, the constructor already does it, but if for some reason you want
@@ -89,6 +92,32 @@ int main()
 
 		// Training network, with the provided data
 		network.trainNetwork("GD", inputArr, expArr, 100);
+
+		//-----------------------------------//
+
+		// Testing the network
+
+		// Creating artificial test frames
+		unsigned testFrame1[inSize] = { 1, 0, 12, 3 };
+		unsigned testFrame2[inSize] = { 1, 0, 11, 3 };
+
+		vector<unsigned*> testFrames;
+
+		testFrames.push_back(testFrame1);
+		testFrames.push_back(testFrame2);
+
+		// Creating artificial expected arrays, for error calculation
+		unsigned testExpected1[expectedSize] = { 0, 0, 0, 0, 0, 0, 1, 0, 0, 0 };
+		unsigned testExpected2[expectedSize] = { 0, 0, 0, 0, 0, 0, 1, 0, 0, 0 };
+
+		vector<unsigned*> testExpArr;
+
+		testExpArr.push_back(testExpected1);
+		testExpArr.push_back(testExpected2);
+
+		// Start test, function will provide error data on
+		// Standard output
+		network.testNetwork(testFrames, inSize, testExpArr, expectedSize);
 	}
 	catch (std::out_of_range)
 	{

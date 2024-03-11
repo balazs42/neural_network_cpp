@@ -288,15 +288,17 @@ private:
 		std::cout << "\n";
 	}
 
-	// Normalizing functions
+	// Normalizing functions, TESTED: OK
 	template<typename T>
 	double* normalizeInput(T* arr, unsigned num) { return normalizeData(arr, num); }
 
-	// Normalize expected array
+	// Normalize expected array, TESTED: OK
 	template<typename T>
 	double* normalizeExpected(T* arr, unsigned num) { return normalizeData(arr, num); }
 
-	// Feedforward process on network
+	// Feedforward process on network, TESTED: OK
+	// Each activation is calculated in this form:
+	// a^(L)j = ActFun((SUM(a^(L-1)k*Wjk) + B^(L)j)
 	template<typename T>
 	void feedForwardNetwork(T* inputArr, unsigned num)
 	{
@@ -315,38 +317,40 @@ private:
 
 		// 1st step is normalizing input array, to 0-1 values, and setting first layers activations as these values
 
-
 		// Normalizing data
 		double* normalizedInput = new double[num];
 		normalizeData(inputArr, num, normalizedInput);
 
-		// Setting first layer's activations
 		Neuron* firstLayer = layers[0].getThisLayer();
 		unsigned numberOfNeurons = layers[0].getNumberOfNeurons();
 
+		// Setting first layer's activations
 		for (unsigned i = 0; i < num; i++)
 			firstLayer[i].setActivation(normalizedInput[i]);
 
 		// Debug print in input layer
 		for (unsigned i = 0; i < num; i++)
-			std::cout << "Input: " << normalizedInput[i] << " Activation: " << firstLayer[i].getBias() << "\n";
+			std::cout << "Input: " << normalizedInput[i] << " Bias: " << firstLayer[i].getBias() << "\n";
 
 		// Starting feedforward process
 		for (int i = 0; i < layers.size() - 1; i++)
 		{
-			// Iterationg through each neuron in the right layer
-			for (int j = 0; j < layers[i + 1].getNumberOfNeurons(); j++)
-			{
-				// Neuron array on the right side
-				Neuron* rightLayer = layers[i + 1].getThisLayer();
+			// Neuron array on the right side
+			Neuron* rightLayer = layers[i + 1].getThisLayer();
+			unsigned sizeRight = layers[i + 1].getNumberOfNeurons();
 
-				// Neuron array on the left side
-				Neuron* leftLayer = layers[i].getThisLayer();
+			// Neuron array on the left side
+			Neuron* leftLayer = layers[i].getThisLayer();
+			unsigned sizeLeft = layers[i].getNumberOfNeurons();
+	
+			// Iterationg through each neuron in the right layer
+			for (int j = 0; j < sizeRight; j++)
+			{
 
 				double z = 0.0f;
 				// Iterating through each neuron in left layer
 #pragma omp parallel for reduction(+:z)
-				for (int k = 0; k < layers[i].getNumberOfNeurons(); k++)
+				for (int k = 0; k < sizeLeft; k++)
 				{
 					// calc    =        left activation       *       edge between         
 					z += leftLayer[k].getActivation() * edges[i][k][j].getWeight();
@@ -358,28 +362,18 @@ private:
 				rightLayer[j].setZ(z);
 
 				// Setting current neurons activation as: activation = activationFunction(z); [for example: a = sigmoid(z)]
-				z = rightLayer[j].activateNeuron(rightLayer[j].getZ());
-				rightLayer[j].setActivation(z);
+				double activation = rightLayer[j].activateNeuron(rightLayer[j].getZ());
+				rightLayer[j].setActivation(activation);
 			}
 		}
 
 		// Free allocated memory
 		delete[] normalizedInput;
-		
-		// Debug print
-		std::cout << "Activations in the network\n";
-		for (unsigned i = 0; i < layers.size(); i++)
-		{
-			Neuron* thisLayer = layers[i].getThisLayer();
-			for (unsigned j = 0; j < layers[i].getNumberOfNeurons(); j++)
-			{
-				std::cout << thisLayer[j].getActivation() << " ";
-			}
-			std::cout << "\n";
-		}
 	}
 
-	// Calculating network's error based on the provided expected array
+	// TODO: Add more cost functions besides quadratic const function
+
+	// Calculating network's error based on the provided expected array, TESTED: OK
 	template<typename T>
 	void calculateError(T* expectedArray, unsigned num)
 	{
@@ -408,19 +402,20 @@ private:
 			lastLayer[i].setError(2 * lastLayer[i].getActivation() - normalizedExpected[i]);
 		}
 
+		// Free allocated memory
 		delete[] normalizedExpected;
 	}
 
-	// Calculated delta activations in the network
+	// Calculated delta activations in the network, TESTED: OK
 	void calculateDeltaActivation();
 
-	// Calculate delta biases in the network
+	// Calculate delta biases in the network, TESTED: OK
 	void calculateDeltaBias();
 
-	// Calcualte delta weights in the network
+	// Calcualte delta weights in the network, TESTED: OK
 	void calculateDeltaWeight();
 
-	// Setting newly calulated parameters to the network
+	// Setting newly calulated parameters to the network, TESTED: OK
 	void setNewParameters();
 
 	/***************************************/
@@ -477,6 +472,8 @@ private:
 private:
 
 	// Implementation of 1 backpropagation process
+	// The implementation is highly based on 3Blue1Brown: Backpropagation video and article
+	// And also on this arcticle: http://neuralnetworksanddeeplearning.com/chap2.html
 	template <typename T1, typename T2>
 	void backPropagation(T1* inputArr, unsigned inNum, T2* expectedArr, unsigned expNum)
 	{
@@ -714,6 +711,60 @@ public:
 			delete[] convertedInArr[i];
 		for (unsigned i = 0; i < convertedExpArr.size(); i++)
 			delete[] convertedExpArr[i];
+	}
+	/***************************************/
+	/********* Testing functions ***********/
+	/***************************************/
+
+
+	/* Tester functions for the network, performs feedforward
+	 * operaition(s) on the network with the given input,
+	 * prints the finel layer's activations on the standard
+	 * output, and returns the squared mean error.
+	 * 
+	 * @param inFrame Frame that the network used or not through training
+	 * @param sizeIn Size of the frame
+	 * @param expOut Expected output array for error calculation
+	 * @param sizeOut Size of on expected array
+	 * @tparam T Type of the input array elements
+	 * @return squared mean error of the network
+	 */
+	template <typename T1, typename T2>
+	double testNetwork(T1* inFrame, unsigned sizeIn, T2* expOut, unsigned sizeOut)
+	{
+		double error = 0.0f;
+
+		// Feedforward the input
+		feedForwardNetwork(inFrame, sizeIn);
+
+		// Activations in the network
+		std::cout << "Activations : ";
+		for (unsigned i = 0; i < sizeOut; i++)
+			std::cout << "A" << i << ":\t" << layers[layers.size() - 1].getThisLayer()[i].getActivation();
+		std::cout << "End of activations\n";
+
+		// Printing the network to the standard output
+		printNetwork();
+
+		// Calculating error
+#pragma omp parallel for reduction(+:error)
+		for (int i = 0; i < layers[layers.size() - 1].getNumberOfNeurons(); i++)
+			error += sqrt(pow(layers[layers.size() - 1].getThisLayer()[i].getActivation(), 2) - pow(expOut[i], 2));
+
+		std::cout << "\nFrame Error: " << error << "\n";
+		return error;
+	}
+
+	template <typename T1, typename T2>
+	double testNetwork(vector<T1*> inFrame, unsigned sizeIn, vector<T2*> expOut, unsigned sizeOut)
+	{
+		double error = 0.0f;
+
+#pragma omp parallel for reduction(+:error)
+		for (int i = 0; i < inFrame.size(); i++)
+			error += testNetwork(inFrame[i], sizeIn, expOut[i], sizeOut);
+
+		std::cout << "\nBatch error: " << error << "\n";
 	}
 };
 

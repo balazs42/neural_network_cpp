@@ -213,21 +213,27 @@ void Network::calculateDeltaActivation()
     double error = 0.0f;
 
     // Going through each layer, starting from right to left
-    for (unsigned i = layers.size() - 1; i > 0; i--)
+    for (int i = edges.size() - 1; i >= 0; i--)
     {
-        Neuron* rightLayer = layers[i].getThisLayer();
-        Neuron* leftLayer = layers[i - 1].getThisLayer();
+        Neuron* rightLayer = layers[i + 1].getThisLayer();
+        Neuron* leftLayer = layers[i].getThisLayer();
+
+        unsigned rightSize = layers[i + 1].getNumberOfNeurons();
+        unsigned leftSize = layers[i].getNumberOfNeurons();
 
         // Iteratin through left layers neurons
-        for (unsigned j = 0; j < layers[i - 1].getNumberOfNeurons(); j++)
+        for (int j = 0; j < leftSize; j++)
         {
             error = 0.0f;
             // Iterating through right layer's neurons
-            for (unsigned k = 0; k < layers[i].getNumberOfNeurons(); k++)
+#pragma omp parallel for reduction(+:error)
+            for (int k = 0; k < rightSize; k++)
             {
-                // Error = edge between right and left layer's neurons * d/dActFun(z)               * righ layer's neuron's error
-                error += edges[i - 1][j][k].getWeight() * rightLayer[k].activateDerivative(rightLayer[k].getZ()) * rightLayer[k].getError();
+                // Error = edge between right and left layer's neurons * righ layer's neuron's error
+                error += edges[i][j][k].getWeight() * rightLayer[k].getError();
             }
+            // * d/dActFun(z) 
+            error *= leftLayer[j].activateDerivative(leftLayer[j].getZ());
             leftLayer[j].setError(error);
         }
     }
@@ -246,11 +252,12 @@ void Network::calculateDeltaBias()
         Neuron* thisLayer = layers[i].getThisLayer();
 
         // Parallelize delta bias calculation for each neuron in the current layer
-//#pragma omp parallel for
+#pragma omp parallel for
         for (int j = 0; j < layers[i].getNumberOfNeurons(); j++)
         {
-            double deltaBias = thisLayer[j].getError() * thisLayer[j].activateDerivative(thisLayer[j].getZ());
-            thisLayer[j].setDeltaBias(deltaBias);
+            // deltaBias     = error in current neuron * d/dActFun(z)
+            //double deltaBias = thisLayer[j].getError() * thisLayer[j].activateDerivative(thisLayer[j].getZ());
+            thisLayer[j].setDeltaBias(thisLayer[j].getError());
         }
     }
 }
@@ -278,8 +285,8 @@ void Network::calculateDeltaWeight()
             for (int k = 0; k < rightSize; k++)
             {
                 // DeltaWeight =  left activation      *                      d/dActFun(z)                      *   right neuron error      
-                double dWeight = leftLayer[j].getActivation() * rightLayer[k].activateDerivative(rightLayer[j].getZ()) * rightLayer[k].getError();
-
+                //double dWeight = leftLayer[j].getActivation() * rightLayer[k].activateDerivative(rightLayer[j].getZ()) * rightLayer[k].getError();
+                double dWeight = leftLayer[j].getActivation() * rightLayer[k].getError();
                 // Setting delta weight
                 edges[i][j][k].setDeltaWeight(dWeight);
             }

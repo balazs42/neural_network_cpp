@@ -25,7 +25,7 @@ private:
 	double activation;			// Activation of the neuron	
 	double bias;				// Bias of the neuron
 	double error;				// Error in the neuron
-	double z;					// Parameter that will be passed to the activation function
+	double z;					// Weighted input of neurons to this neurons
 	
 	double deltaActivation;		// Delta activation calculated from error
 	double deltaBias;			// Delta bias calculated from error
