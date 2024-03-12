@@ -29,33 +29,6 @@ int main()
 {
 	try
 	{
-		// Input and output array's sizes should sta constant
-		const unsigned inSize = 4; 
-		const unsigned expectedSize = 10;
-
-		// First define the number of neurons in each layer
-		// each layer should have a numerical value greater then 0
-		vector<unsigned> layerSizes = { inSize, 10, expectedSize };
-
-		// Create network object, with the specified optimization and regularization and initialization techniques
-		Network network(layerSizes, "none", "none", "Xavier");
-
-		// You can randinit all edges and biases, in the network, although it is not
-		// necessary, the constructor already does it, but if for some reason you want
-		// to reinit the network you have the possibility
-		//network.randInitNetwork();
-
-		// You can set different activation functions to the layers
-		// you cannot pass more strings then the number of layers
-		vector<string> activationFunctions = { "Relu", "Sigmoid", "Sigmoid" };
-
-		// You can set all the network to 1 specific activation function
-		network.setAllActivationFunctions("Relu");
-
-		// Or by passing the vector as an argument, you can set different
-		// activation functions to different layers
-		//network.setLayerActivationFunctions(activationFunctions);
-
 		//-----------------------------------//
 
 		// This is an artifically created input array, you have to bring your input 
@@ -115,12 +88,45 @@ int main()
 
 		//-----------------------------------//
 
+		// First define the number of neurons in each layer
+		// each layer should have a numerical value greater then 0
+		vector<unsigned> layerSizes = { INPUT_LAYER_SIZE, 5, OUTPUT_LAYER_SIZE };
+
+		// Create network object, with the specified optimization and regularization and initialization techniques
+		Network network(layerSizes,		// Layer hidden sizes
+						"none",			// Optimization technique
+						"none",			// Regularization technique
+						"Xavier",		// Initialization technique
+						inputArr,		// Vector of input frames
+						expArr			// Vector of expected output frames
+		);
+
+		// You can randinit all edges and biases, in the network, although it is not
+		// necessary, the constructor already does it, but if for some reason you want
+		// to reinit the network you have the possibility
+		//network.randInitNetwork();
+
+		// You can set different activation functions to the layers
+		// you cannot pass more strings then the number of layers
+		vector<string> activationFunctions = { "Relu", "Sigmoid", "Sigmoid" };
+
+		// You can set all the network to 1 specific activation function
+		network.setAllActivationFunctions("Relu");
+
+		// Or by passing the vector as an argument, you can set different
+		// activation functions to different layers
+		//network.setLayerActivationFunctions(activationFunctions);
+
+		//-----------------------------------//
+
 		// Training network, with the provided data
 		network.trainNetwork("sgd", inputArr, expArr, 100);
 
 		//-----------------------------------//
 
 		// Testing the network
+		const int inSize = 4;
+		const int expectedSize = 10;
 
 		// Creating artificial test frames
 		unsigned testFrame1[inSize] = { 1, 2, 3, 4 };

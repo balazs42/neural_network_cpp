@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <map>
 #include <tuple>
+#include <cstring> // for memcpy
 
 // Define which functions you want to use, and then those functions will be available
 #define _IMAGE_    
@@ -17,6 +18,8 @@
 #ifdef _IMAGE_
 #define STB_IMAGE_IMPLEMENTATION    // Image handling functions
 #include "stb_image.h"
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "stb_image_write.h"        // Image reconstruction handling functions
 #endif
 
 #ifdef _AUDIO_
@@ -119,6 +122,32 @@ std::vector<std::vector<T>> convertImageFolder(const std::string& folderPath)
     }
 
     return results;
+}
+
+// Reconstructs the given float vector to image
+// @param1 vec Vector out the outputs
+// @param2 width Width of the image
+// @param3 height Heigth of the image
+// @param4 filePath Path where the output image will be printed
+void reconstructImageFromVector(const std::vector<float>& vec, int width = 100, int height = 100, const std::string& filePath = "output.jpg")
+{
+    // Convert the vector to unsigned char format expected by stb_image_write
+    std::vector<unsigned char> image(width * height);
+    for (size_t i = 0; i < vec.size(); ++i) {
+        image[i] = static_cast<unsigned char>(vec[i] * 255.0f);
+    }
+
+    // Determine the image format based on the file extension
+    std::string ext = filePath.substr(filePath.find_last_of(".") + 1);
+
+    if (ext == "bmp") 
+        stbi_write_bmp(filePath.c_str(), width, height, 1, image.data());
+    else if (ext == "png") 
+        stbi_write_png(filePath.c_str(), width, height, 1, image.data(), width);
+    else if (ext == "jpg" || ext == "jpeg") 
+        stbi_write_jpg(filePath.c_str(), width, height, 1, image.data(), 100); // 100 is the quality
+    else 
+        std::cerr << "Unsupported format" << std::endl;
 }
 #endif
 /**************************************************************/

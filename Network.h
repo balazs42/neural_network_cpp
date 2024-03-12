@@ -3,6 +3,9 @@
 #ifndef _NETWORK_H_
 #define _NETWORK_H_
 
+#define INPUT_LAYER_SIZE 10
+#define OUTPUT_LAYER_SIZE 10
+
 #include <vector>	// Include for vector container
 #include <algorithm>// Include for random shuffle and etc.
 #include <random>
@@ -82,7 +85,11 @@ public:
 	 * This constructor initializes the neural network's structure, setting up layers and connections based on the provided specifications. It validates the input parameters
 	 * for layer configurations, ensures at least two layers are defined, and initializes weights and biases according to the chosen methods. Throws exceptions for invalid configurations.
 	 */
-	Network(vector<unsigned> numNeurons, const string& opt, const string& reg, const string& initer, double desiredPrec = 0.002f, double dpr = 0.5f) : gen(std::random_device{}()), dis(-1.0, 1.0),
+	template<typename T1, typename T2>
+	Network(vector<unsigned> numNeurons, const string& opt, const string& reg, const string& initer, 
+		const vector<vector<T1>> inDataSet, const vector<vector<T2>> expDataSet,
+		double desiredPrec = 0.002f, double dpr = 0.5f) :
+		gen(std::random_device{}()), dis(-1.0, 1.0),
 		useRmspropOptimization(false), useAdagradOptimization(false), useAdadeltaOptimization(false),
 		useNagOptimization(false), useAdamaxOptimization(false), useAdamOptimization(false),
 		useL1(false), useL2(false), useDropout(false), dropoutRate(dpr), useWe(false), useXavier(false), 
@@ -149,6 +156,14 @@ public:
 
 		// Clearing layers vector
 		layers.clear();
+
+		// Perfroming max serach on inputs for the sizes of input layer
+		unsigned maxIn = searchMaxNumDataPointInDataSet(inDataSet);
+		unsigned maxExp = searchMaxNumDataPointInDataSet(expDataSet);
+
+		// Modifying numNeur array, to fit input output number of neurons
+		numNeurons[0] = maxIn;
+		numNeurons[numNeurons.size() - 1] = maxExp;
 
 		// Creating the layers of neurons
 		for (unsigned i = 0; i < numNeurons.size(); i++)
@@ -259,6 +274,16 @@ public:
 	double getDesiredPrecision() const { return desiredPrecision; }
 
 private:
+	// Searches for the max number of datas in whole dataset
+	template<typename T>
+	unsigned searchMaxNumDataPointInDataSet(vector<vector<T>> arr)
+	{
+		unsigned max = arr[0].size();
+		for (unsigned i = 0; i < arr.size(); i++)
+			if (max < arr[i].size())
+				max = arr[i].size();
+		return max;
+	}
 
 	/***************************************/
 	/******* Initializing functions ********/
@@ -354,9 +379,18 @@ private:
 		Neuron* firstLayer = layers[0].getThisLayer();
 		unsigned numberOfNeurons = layers[0].getNumberOfNeurons();
 
+		unsigned diff = numberOfNeurons - num;
+
 		// Setting first layer's activations
 		for (unsigned i = 0; i < num; i++)
 			firstLayer[i].setActivation(normalizedInput[i]);
+
+		// Filling in 0 activations if the input frame is smaller then other frames
+		if (diff > 0)
+		{
+			for (unsigned i = num; i < numberOfNeurons; i++)
+				firstLayer[i].setActivation(0.0f);
+		}
 
 		// Starting feedforward process
 		for (int i = 0; i < layers.size() - 1; i++)
@@ -417,6 +451,9 @@ private:
 		normalizeData(expectedArray, num, normalizedExpected);
 
 		Neuron* lastLayer = layers[layers.size() - 1].getThisLayer();
+		unsigned lastLayerSize = layers[layers.size() - 1].getNumberOfNeurons();
+
+		unsigned diff = lastLayerSize - num;
 
 		// Parallelize error calculation for each neuron in the last layer
 #pragma omp parallel for
@@ -426,6 +463,13 @@ private:
 			// So the error should be calculated like this: 
 			//           Error =  2 *       activation             -  ||expected value||
 			lastLayer[i].setError(2.0f * lastLayer[i].getActivation() - normalizedExpected[i]);
+		}
+
+		// Checking if some neurons are left out bcs. the exp frame is too small
+		if (diff > 0)
+		{
+			for (unsigned i = num; i < lastLayerSize; i++)
+				lastLayer[i].setError(0.0f);
 		}
 
 		// Free allocated memory
