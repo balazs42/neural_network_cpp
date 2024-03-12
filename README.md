@@ -15,12 +15,14 @@ Provided input and output vector generator functions, currently you can use:
  - Your time series data, with a selected window, basically that will be the frame size, and this determines the number of input neurons
 
 Basic usage pseudocode:
-	- inputs = convertInput(your_path);
- 	- expecteds = convertExpecteds(your_path);
-  	- vector layerSizes = {x1, x2, ... , xn);		// xn is the number of neurons in each layer, by this you define how many layers there will be 
-	- vector activationFunctions = {"Relu", "Sigmoid", ... , "LeakyRelu"}; // NOTE: You have to provide as many strings here as many layers you defined, since this will set layer activations
- 	- Network network(layerSizes, "OptimizationMethod", "RegulariaztionMethod", "InitializationMethod", optionalDesiredPrecision, optionalDropoutRate);	// These parameters should be provided to create the netwrok. You can set optimization(Adam, Adamax, etc.), regularization(L1, L2) and initialization(We, Xavier, Rand) methods to "none", by default it will use then no opt., reg. and will set initial weights and biases randomly. Optional variables can be left out.
-  	- network.trainNetwork("TrainginMethod", inputs, outputs, optionalEchoNumber);	// Training method can be: GradientDescent(gd), StochasticGradienDescent(sgd), BatchGradientDescent(bgd), MinibatchGradientDescent(mgd).
+ - inputs = convertInput(your_path);
+ - expecteds = convertExpecteds(your_path);
+ - vector layerSizes = {x1, x2, ... , xn);		// xn is the number of neurons in each layer, by this you define how many layers there will be 
+ - vector activationFunctions = {"Relu", "Sigmoid", ... , "LeakyRelu"}; // NOTE: You have to provide as many strings here as many layers you defined, since this will set layer activations
+
+ - Network network(layerSizes, "OptimizationMethod", "RegulariaztionMethod", "InitializationMethod", optionalDesiredPrecision, optionalDropoutRate);	// These parameters should be provided to create the netwrok. You can set optimization(Adam, Adamax, etc.), regularization(L1, L2) and initialization(We, Xavier, Rand) methods to "none", by default it will use then no opt., reg. and will set initial weights and biases randomly. Optional variables can be left out.
+
+ - network.trainNetwork("TrainginMethod", inputs, outputs, optionalEchoNumber);	// Training method can be: GradientDescent(gd), StochasticGradienDescent(sgd), BatchGradientDescent(bgd), MinibatchGradientDescent(mgd).
 
  Currently this project is in this state: WORK IN PROGRESS!
  Neuron, Edge, Layer and Network classes are implemented, but 
