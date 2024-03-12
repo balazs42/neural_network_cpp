@@ -24,6 +24,11 @@ Basic usage pseudocode:
 
  - network.trainNetwork("TrainginMethod", inputs, outputs, optionalEchoNumber);	// Training method can be: GradientDescent(gd), StochasticGradienDescent(sgd), BatchGradientDescent(bgd), MinibatchGradientDescent(mgd).
 
+After training you can check the performance of the network like this:
+ - unseenInputs = convertInput(your_path_to_other_inputs);
+ - unseedExpecteds = convertExpecteds(yout_path_to_other_expecteds);
+ - network.testNetwork(unseenInputs, unseenExpecteds);
+
  Currently this project is in this state: WORK IN PROGRESS!
  Neuron, Edge, Layer and Network classes are implemented, but 
  they are not tested and not complete!
