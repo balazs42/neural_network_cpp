@@ -16,7 +16,16 @@ The project includes versatile input and output vector generator functions to ac
 - Time series data with selected window size determining the number of input neurons
 - Audio files (.MP3)
 
-### Basic and Example Usage
+### Brief example
+- string animalFolder = "\path\animalFolder"; // Animal folder = {dogPic1.jpg, dogPic2.jpg, dogPic3.png, catPic1.jpg, dogPic4.jpg ... }
+- string expectedAnimalsTxt = "\path\expectedAnimals.txt"; // txt = {"dog,dog,dog,cat,dog..."}
+- vector<vector<float> inputFrames = convertInput(animalFolder);
+- vector<vector<float>> expValues = convertInput(expectedAnimalsTxt);
+- Other initializations
+- Network network(); // Initialize with corresponding parameters (SEEN BELOW)
+- network.trainNetwork(inputFrames, expValues);
+
+#### Basic and Example Usage
 ```cpp
 vector inputs = convertInput(your_path); // Converts the specified data to neural network compatible inputs
 vector expecteds = convertExpecteds(your_path); // Converts specified data to expected outputs
