@@ -4,6 +4,24 @@ The implementation is based on 3Blue1Brown's article on the topic: https://www.3
 
 My take on the backpropagation algorithm, classes used for the project are highly based on the article.
 
+Provided input and output vector generator functions, currently you can use:
+ - Folder of images of types: .MP3, .PNG, .BMP, .TGA, .GIF
+ - Single images 
+ - Boolean vectors
+ - Vector of strings
+ - From a .TXT file reading every entry separated by a specific separator, for example tmp.txt = "dog,dog,cat,dog,cat..."
+ - Provide an .MP4 video file and chop it up into frames, then use that as the input (openCV must be included to the project properly, and you have to define _VIDEO_, and setup compiler and linker accordingly)
+ - Any type of numerical vector, and they can be converted to any specific other numerical vector
+ - Your time series data, with a selected window, basically that will be the frame size, and this determines the number of input neurons
+
+Basic usage pseudocode:
+	- inputs = convertInput(your_path);
+ 	- expecteds = convertExpecteds(your_path);
+  	- vector layerSizes = {x1, x2, ... , xn);		// xn is the number of neurons in each layer, by this you define how many layers there will be 
+	- vector activationFunctions = {"Relu", "Sigmoid", ... , "LeakyRelu"}; // NOTE: You have to provide as many strings here as many layers you defined, since this will set layer activations
+ 	- Network network(layerSizes, "OptimizationMethod", "RegulariaztionMethod", "InitializationMethod", optionalDesiredPrecision, optionalDropoutRate);	// These parameters should be provided to create the netwrok. You can set optimization(Adam, Adamax, etc.), regularization(L1, L2) and initialization(We, Xavier, Rand) methods to "none", by default it will use then no opt., reg. and will set initial weights and biases randomly. Optional variables can be left out.
+  	- network.trainNetwork("TrainginMethod", inputs, outputs, optionalEchoNumber);	// Training method can be: GradientDescent(gd), StochasticGradienDescent(sgd), BatchGradientDescent(bgd), MinibatchGradientDescent(mgd).
+
  Currently this project is in this state: WORK IN PROGRESS!
  Neuron, Edge, Layer and Network classes are implemented, but 
  they are not tested and not complete!
