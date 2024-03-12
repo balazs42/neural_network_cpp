@@ -35,7 +35,7 @@ int main()
 		vector<unsigned> layerSizes = { inSize, 10, expectedSize };
 
 		// Create network object, with the specified optimization and regularization and initialization techniques
-		Network network(layerSizes, "adam", "none", "Xavier");
+		Network network(layerSizes, "none", "none", "Xavier");
 
 		// You can randinit all edges and biases, in the network, although it is not
 		// necessary, the constructor already does it, but if for some reason you want
@@ -44,10 +44,10 @@ int main()
 
 		// You can set different activation functions to the layers
 		// you cannot pass more strings then the number of layers
-		vector<string> activationFunctions = { "Sigmoid", "Relu", "Sigmoid", "Tanh" };
+		vector<string> activationFunctions = { "Relu", "Sigmoid", "Sigmoid" };
 
 		// You can set all the network to 1 specific activation function
-		network.setAllActivationFunctions("Sigmoid");
+		network.setAllActivationFunctions("Relu");
 
 		// Or by passing the vector as an argument, you can set different
 		// activation functions to different layers
@@ -63,6 +63,10 @@ int main()
 		vector<unsigned> secondFrame = {2, 3, 4, 5};
 		vector<unsigned> thirdFrame =  {10, 9, 8, 11};
 		vector<unsigned> fourthFrame = {1, 0, 12, 3};
+		vector<unsigned> fifthFrame = { 4, 4, 4, 4 };
+		vector<unsigned> sixthFrame = { 0, 0, 0, 0 };
+		vector<unsigned> seventhFrame = { 0, 3, 6, 9 };
+		vector<unsigned> eightFrame = { 0, 2, 3, 4 };
 
 		// Creating input vector of frames
 		vector<vector<unsigned>> inputArr;
@@ -72,6 +76,10 @@ int main()
 		inputArr.push_back(secondFrame);
 		inputArr.push_back(thirdFrame);
 		inputArr.push_back(fourthFrame);
+		inputArr.push_back(fifthFrame);
+		inputArr.push_back(sixthFrame);
+		inputArr.push_back(seventhFrame);
+		inputArr.push_back(eightFrame);
 
 		//-----------------------------------//
 
@@ -80,6 +88,10 @@ int main()
 		vector<unsigned> secondExpected = {0, 0, 1, 0, 0, 0, 0, 0, 0, 0};
 		vector<unsigned> thirdExpected =  {0, 0, 0, 0, 1, 0, 0, 0, 0, 0};
 		vector<unsigned> fourthExpected = {0, 0, 0, 0, 0, 0, 1, 0, 0, 0};
+		vector<unsigned> fifthExpected =  {0, 0, 0, 0, 0, 0, 0, 1, 0, 0};
+		vector<unsigned> sixthExpected =  {0, 0, 0, 0, 0, 0, 0, 0, 1, 0};
+		vector<unsigned> seventhExpected ={0, 0, 0, 0, 0, 0, 0, 0, 0, 1};
+		vector<unsigned> eightExpected =  {1, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
 		vector<vector<unsigned>> expArr;
 
@@ -87,11 +99,15 @@ int main()
 		expArr.push_back(secondExpected);
 		expArr.push_back(thirdExpected);
 		expArr.push_back(fourthExpected);
+		expArr.push_back(fifthExpected);
+		expArr.push_back(sixthExpected);
+		expArr.push_back(seventhExpected);
+		expArr.push_back(eightExpected);
 
 		//-----------------------------------//
 
 		// Training network, with the provided data
-		network.trainNetwork("gd", inputArr, expArr, 100);
+		network.trainNetwork("sgd", inputArr, expArr, 100);
 
 		//-----------------------------------//
 
@@ -107,7 +123,7 @@ int main()
 		testFrames.push_back(testFrame2);
 
 		// Creating artificial expected arrays, for error calculation
-		unsigned testExpected1[expectedSize] = { 0, 0, 0, 0, 0, 0, 1, 0, 0, 0 };
+		unsigned testExpected1[expectedSize] = { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 		unsigned testExpected2[expectedSize] = { 0, 0, 0, 0, 0, 0, 1, 0, 0, 0 };
 
 		vector<unsigned*> testExpArr;

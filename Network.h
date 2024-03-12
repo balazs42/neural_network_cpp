@@ -8,6 +8,7 @@
 #include <random>
 #include <iostream>
 #include <string>
+#include <iomanip> // Include for std::setprecision and std::fixed
 
 #include "Layer.h"	// Include for Layer class
 #include "Edge.h"	// Include for Edge class
@@ -51,6 +52,9 @@ private:
 	double beta1Power;	// Decay rate for adam optimization
 	double beta2Power;
 
+	double desiredPrecision;	// Precision that user wants to achieve
+	double currentPrecision;	// Currently obtained precision by the network
+
 	// Random number generation using the modern <random> library
 	std::mt19937 gen; // Standard mersenne_twister_engine seeded with time()
 	std::uniform_real_distribution<> dis; // Uniform distribution between -1.0 and 1.0
@@ -59,7 +63,8 @@ public:
 	Network() : layers(), edges(), gen(std::random_device{}()), dis(-1.0, 1.0),
 		useRmspropOptimization(false), useAdagradOptimization(false), useAdadeltaOptimization(false),
 		useNagOptimization(false), useAdamaxOptimization(false), useAdamOptimization(false),
-		useL1(false), useL2(false), useDropout(false), dropoutRate(0.5f), useWe(false), useXavier(false)
+		useL1(false), useL2(false), useDropout(false), dropoutRate(0.5f), useWe(false), useXavier(false), 
+		desiredPrecision(0.002f), currentPrecision(1.0f)
 	{
 		beta1Power = beta1PowerStarter;
 		beta2Power = beta2PowerStarter;
@@ -77,10 +82,11 @@ public:
 	 * This constructor initializes the neural network's structure, setting up layers and connections based on the provided specifications. It validates the input parameters
 	 * for layer configurations, ensures at least two layers are defined, and initializes weights and biases according to the chosen methods. Throws exceptions for invalid configurations.
 	 */
-	Network(vector<unsigned> numNeurons, const string& opt, const string& reg, const string& initer, double dpr = 0.5f) : gen(std::random_device{}()), dis(-1.0, 1.0),
+	Network(vector<unsigned> numNeurons, const string& opt, const string& reg, const string& initer, double desiredPrec = 0.002f, double dpr = 0.5f) : gen(std::random_device{}()), dis(-1.0, 1.0),
 		useRmspropOptimization(false), useAdagradOptimization(false), useAdadeltaOptimization(false),
 		useNagOptimization(false), useAdamaxOptimization(false), useAdamOptimization(false),
-		useL1(false), useL2(false), useDropout(false), dropoutRate(dpr), useWe(false), useXavier(false)
+		useL1(false), useL2(false), useDropout(false), dropoutRate(dpr), useWe(false), useXavier(false), 
+		desiredPrecision(desiredPrec), currentPrecision(1.0f)
 	{
 		beta1Power = beta1PowerStarter;
 		beta2Power = beta2PowerStarter;
@@ -206,6 +212,12 @@ public:
 	// Set beta 2 power
 	void setBeta2Power(double parameter) { beta2Power = parameter; }
 
+	// Setting current precision variable
+	void setCurrentPrecision(double parameter) { currentPrecision = parameter; }
+
+	// Setting desired precision
+	void setDesiredPrecision(double parameter) { desiredPrecision = parameter; }
+
 	// Getter functions
 	vector<Edge**> getEdges() const { return edges; }
 	vector<Layer> getLayers() const { return layers; }
@@ -241,6 +253,10 @@ public:
 	double getBeta1Power() const { return beta1Power; }
 	double getBeta2Power() const { return beta2Power; }
 
+	// Getter function for precision variables
+	double getCurrentPrecision() const { return currentPrecision; }
+	double getDesiredPrecision() const { return desiredPrecision; }
+
 private:
 
 	/***************************************/
@@ -266,13 +282,11 @@ public:
 	/***************************************/
 	void printNetwork();
 
-
 private:
 
 	/***************************************/
 	/********* Training functions **********/
 	/***************************************/
-
 
 private:
 	// Normalizing the given data to 1 - 0 range
@@ -293,24 +307,20 @@ private:
 				min = arr[i];
 		}
 
-		// TODO: handle if all elements are the same
+		// Handle if all elements are the same
 		if (min == max)
 		{
-			throw out_of_range("Division by zero, check arrays, at noramlizing input or output!");
-			exit(-8);
+			for (unsigned i = 0; i < num; i++)
+				retArr[i] = (double)(arr[i]);
+			return;
 		}
+
 		double dMin = (double)min;
 		double dMax = (double)max;
 
 		// Normalize the data
 		for (unsigned i = 0; i < num; i++)
 			retArr[i] = (double)((arr[i] - dMin) / (dMax - dMin));
-
-		// Debug print:
-		std::cout << "Normalized array\n";
-		for (unsigned i = 0; i < num; i++)
-			std::cout << retArr[i] << " ";
-		std::cout << "\n";
 	}
 
 	// Normalizing functions, TESTED: OK
@@ -334,12 +344,6 @@ private:
 			throw out_of_range("Input array is larger then input layer, data will be lost, check code if this is a problem!");
 		}
 
-		// Debug print input array
-		std::cout << "Input array\n";
-		for (unsigned i = 0; i < num; i++)
-			std::cout << inputArr[i] << " ";
-		std::cout << "\n";
-
 		// 1st step is normalizing input array, to 0-1 values, and setting first layers activations as these values
 
 		// Normalizing data
@@ -352,10 +356,6 @@ private:
 		// Setting first layer's activations
 		for (unsigned i = 0; i < num; i++)
 			firstLayer[i].setActivation(normalizedInput[i]);
-
-		// Debug print in input layer
-		for (unsigned i = 0; i < num; i++)
-			std::cout << "Input: " << normalizedInput[i] << " Bias: " << firstLayer[i].getBias() << "\n";
 
 		// Starting feedforward process
 		for (int i = 0; i < layers.size() - 1; i++)
@@ -424,7 +424,7 @@ private:
 			// Cost function is: E = (a^L - y)^2, d/dE = 2 * (a^L - y) , where y is the expected value at a given index, and a^L is the L-th layer's activation at the given index
 			// So the error should be calculated like this: 
 			//           Error =  2 *       activation             -  ||expected value||
-			lastLayer[i].setError(2 * lastLayer[i].getActivation() - normalizedExpected[i]);
+			lastLayer[i].setError(2.0f * lastLayer[i].getActivation() - normalizedExpected[i]);
 		}
 
 		// Free allocated memory
@@ -560,10 +560,6 @@ private:
 		// Applying optimization and regularization
 		// technique is inside of this function
 		setNewParameters();
-
-		// Debug print
-		std::cout << "\nAfter iteration\n";
-		printNetwork();
 	}
 
 	// Stochastic gradient descent function
@@ -739,30 +735,38 @@ public:
 		// Converting vectors
 		convertInput(inArr, expArr, convertedInArr, convertedExpArr);
 
-		if (s == "Minibatch" || s == "minibatch" || s == "mb")
+		// Training until the precision gets to the desired one
+		while (currentPrecision > desiredPrecision)
 		{
-			// Training using the minibatch gradient descent method
-			minibatchGradientDescent(convertedInArr, inNum, convertedExpArr, expNum, epochNum);
-		}
-		else if (s == "StochasticGradientDescent" || s == "SGD" || s == "sgd")
-		{
-			// Traingin using the stochastic gradient descent method
-			stochasticGradientDescent(convertedInArr, inNum, convertedExpArr, expNum, epochNum);
-		}
-		else if (s == "GradientDescent" || s == "GD" || s == "gd")
-		{
-			// Trainging using the gradient descent method
-			gradientDescent(convertedInArr, inNum, convertedExpArr, expNum, epochNum);
-		}
-		else if (s == "BatchGradientDescent" || s == "BGD" || s == "bgd")
-		{
-			// Training using the batch gradient descent method
-			batchGradientDescent(convertedInArr, inNum, convertedExpArr, expNum, epochNum);
-		}
-		else
-		{
-			throw out_of_range("Invalid traingin technique, check code!");
-			exit(-10);
+			if (s == "Minibatch" || s == "minibatch" || s == "mb")
+			{
+				// Training using the minibatch gradient descent method
+				minibatchGradientDescent(convertedInArr, inNum, convertedExpArr, expNum, epochNum);
+			}
+			else if (s == "StochasticGradientDescent" || s == "SGD" || s == "sgd")
+			{
+				// Traingin using the stochastic gradient descent method
+				stochasticGradientDescent(convertedInArr, inNum, convertedExpArr, expNum, epochNum);
+			}
+			else if (s == "GradientDescent" || s == "GD" || s == "gd")
+			{
+				// Trainging using the gradient descent method
+				gradientDescent(convertedInArr, inNum, convertedExpArr, expNum, epochNum);
+			}
+			else if (s == "BatchGradientDescent" || s == "BGD" || s == "bgd")
+			{
+				// Training using the batch gradient descent method
+				batchGradientDescent(convertedInArr, inNum, convertedExpArr, expNum, epochNum);
+			}
+			else
+			{
+				throw out_of_range("Invalid traingin technique, check code!");
+				exit(-10);
+			}
+
+			// Calculating precision of network
+			calculatePrecision(convertedInArr, inArr[0].size(), convertedExpArr, expArr[0].size());
+			std::cout << "\n\nCurrent precision: " << this->getCurrentPrecision() << "\n\n";
 		}
 
 		// Free allocated memory
@@ -774,7 +778,62 @@ public:
 	/***************************************/
 	/********* Testing functions ***********/
 	/***************************************/
+private:
+	// Calculates the precision
+	template <typename T1, typename T2>
+	double calculateFramePrecision(T1* inFrame, unsigned sizeIn, T2* expOut, unsigned sizeOut)
+	{
+		double error = 0.0f;
 
+		// Feedforward the input
+		feedForwardNetwork(inFrame, sizeIn);
+
+		// Calculate error for the frame
+		Neuron* lastLayer = layers[layers.size() - 1].getThisLayer();
+		unsigned layerSize = layers[layers.size() - 1].getNumberOfNeurons();
+
+//#pragma omp parallel for reduction(+:error)
+		for (int i = 0; i < layerSize; i++)
+		{
+			double squaredAct = pow(lastLayer[i].getActivation(), 2);
+			double squaredExp = pow((double)expOut[i], 2);
+			double pr = abs(squaredAct - squaredExp);
+			error += sqrt(pr);
+		}
+
+		// Divide error for averaging
+		error /= layerSize;
+
+		return error;
+	}
+
+public:
+	template <typename T1, typename T2>
+	void calculatePrecision(vector<T1*> inFrame, unsigned sizeIn, vector<T2*> expOut, unsigned sizeOut)
+	{
+		double prec = 0.0f;
+
+		unsigned numFrames = inFrame.size();
+
+		// Calculating precision for all frames
+#pragma omp parallel for reduction(+:prec)
+		for (int i = 0; i < numFrames; i++)
+			prec += calculateFramePrecision(inFrame[i], sizeIn, expOut[i], sizeOut);
+
+		// Divide precision for averaging
+		prec /= inFrame.size();
+
+		// Printing last iteration
+		std::cout << "\n";
+		for (unsigned i = 0; i < sizeOut; i++)
+			std::cout << " |E" << i << ": " << std::fixed << std::setprecision(5) << (double)expOut[expOut.size() - 1][i];
+
+		std::cout << "\n";
+		for (unsigned i = 0; i < sizeOut; i++)
+			std::cout << " |A" << i << ": " << std::fixed << std::setprecision(5) << layers[layers.size() - 1].getThisLayer()[i].getActivation();
+
+		this->setCurrentPrecision(prec);
+	}
 
 	/* Tester functions for the network, performs feedforward
 	 * operaition(s) on the network with the given input,
@@ -796,10 +855,12 @@ public:
 		// Feedforward the input
 		feedForwardNetwork(inFrame, sizeIn);
 
-		// Activations in the network
 		std::cout << "Activations : ";
-		for (unsigned i = 0; i < sizeOut; i++)
-			std::cout << "A" << i << ":" << layers[layers.size() - 1].getThisLayer()[i].getActivation() << " ";
+		for (unsigned i = 0; i < sizeOut; i++) {
+			std::cout << "A" << i << ":"
+				<< std::fixed << std::setprecision(4)
+				<< layers[layers.size() - 1].getThisLayer()[i].getActivation() << " ";
+		}
 		std::cout << "End of activations\n";
 
 		// Calculating error
@@ -833,16 +894,19 @@ public:
 		return error;
 	}
 
+	// Test network for a given batch of frames
 	template <typename T1, typename T2>
 	double testNetwork(vector<T1*> inFrame, unsigned sizeIn, vector<T2*> expOut, unsigned sizeOut)
 	{
 		double error = 0.0f;
 
-#pragma omp parallel for reduction(+:error)
+		// Calculating error for each frame
 		for (int i = 0; i < inFrame.size(); i++)
 			error += testNetwork(inFrame[i], sizeIn, expOut[i], sizeOut);
 
 		std::cout << "\nBatch error: " << error << "\n";
+
+		return error;
 	}
 };
 
