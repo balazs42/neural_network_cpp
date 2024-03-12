@@ -15,7 +15,7 @@ Provided input and output vector generator functions, currently you can use:
  - Your time series data, with a selected window, basically that will be the frame size, and this determines the number of input neurons
 
 Basic usage pseudocode:
-<pseudocode>
+<code>
 
  - inputs = convertInput(your_path);
  - expecteds = convertExpecteds(your_path);
@@ -30,8 +30,8 @@ After training you can check the performance of the network like this:
  - unseenInputs = convertInput(your_path_to_other_inputs);
  - unseedExpecteds = convertExpecteds(yout_path_to_other_expecteds);
  - network.testNetwork(unseenInputs, unseenExpecteds);
- - 
-</pseudocode>
+   
+</code>
  Currently this project is in this state: WORK IN PROGRESS!
  Neuron, Edge, Layer and Network classes are implemented, but 
  they are not tested and not complete!
