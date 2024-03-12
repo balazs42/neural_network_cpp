@@ -672,24 +672,24 @@ private:
 	void convertInput(std::vector<std::vector<T1>>& inArr, std::vector<std::vector<T2>>& expArr, std::vector<T1*>& inArrConverted, std::vector<T2*>& expArrConverted)
 	{
 		// Converting input array
-		for (unsigned i = 0; i < inArr.size(); i++)
-		{
-			// Allocating new memory
-			inArrConverted.push_back(new T1[inArr[i].size()]);
-
-			// Copying data
-			for (unsigned j = 0; j < inArr[i].size(); j++)
-				inArrConverted[i][j] = inArr[i][j];
-		}
+		convertVectorVectorToVectorPointer<T1>(inArr, inArrConverted);
 
 		// Converting expected array
-		for (unsigned i = 0; i < expArr.size(); i++)
+		convertVectorVectorToVectorPointer<T2>(expArr, expArrConverted);
+	}
+
+	template<typename T>
+	void convertVectorVectorToVectorPointer(std::vector<std::vector<T>>& arr, std::vector<T*>& arrConverted)
+	{
+		
+		for (unsigned i = 0; i < arr.size(); i++)
 		{
-			expArrConverted.push_back(new T2[expArr[i].size()]);
+			// Allocating new memory
+			arrConverted.push_back(new T[arr[i].size()]);
 
 			// Copying data
-			for (unsigned j = 0; j < expArr[i].size(); j++)
-				expArrConverted[i][j] = expArr[i][j];
+			for (unsigned j = 0; j < arr[i].size(); j++)
+				arrConverted[i][j] = arr[i][j];
 		}
 	}
 
@@ -907,6 +907,43 @@ public:
 		std::cout << "\nBatch error: " << error << "\n";
 
 		return error;
+	}
+
+	// This function will perform a feedforward process on the network on each frame, and print the input and corresponding output
+	// @param1 inputFrames The input frames in the network
+	template<typename T>
+	void testNetwork(vector<vector<T>> inputFrames)
+	{
+		// Converting frames
+		vector<T*> convFrames;
+		convertVectorVectorToVectorPointer<T>(inputFrames, convFrames);
+
+		for (unsigned i = 0; i < inputFrames.size(); i++)
+		{
+			// Perform feedforward process with current frame
+			T* frame = convFrames[i];
+			feedForwardNetwork<T>(frame, inputFrames[i].size());
+
+			Neuron* inputLayer = layers[0].getThisLayer();
+			Neuron* outputLayer = layers[layers.size() - 1].getThisLayer();
+
+			unsigned numIn = layers[0].getNumberOfNeurons();
+			unsigned numOut = layers[layers.size() - 1].getNumberOfNeurons();
+
+			std::cout << "\nINPUT: " << i << "\n";
+
+			// Printing input to the standard output
+			for (unsigned j = 0; j < numIn; j++)
+				std::cout << inputLayer[j].getActivation();
+
+			// Print output activations to the standard output
+			std::cout << "\nOUTPUT: " << i << "\n";
+
+			for (unsigned j = 0; j < numOut; j++)
+				std::cout << outputLayer[j].getActivation();
+
+			std::cout << "\nEND: " << i << "\n";		
+		}
 	}
 };
 
