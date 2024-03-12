@@ -5,7 +5,7 @@ The implementation is based on 3Blue1Brown's article on the topic: https://www.3
 My take on the backpropagation algorithm, classes used for the project are highly based on the article.
 
 Provided input and output vector generator functions, currently you can use:
- - Folder of images of types: .MP3, .PNG, .BMP, .TGA, .GIF
+ - Folder of images of types: .JPG, .PNG, .BMP, .TGA, .GIF
  - Single images 
  - Boolean vectors
  - Vector of strings
@@ -13,23 +13,24 @@ Provided input and output vector generator functions, currently you can use:
  - Provide an .MP4 video file and chop it up into frames, then use that as the input (openCV must be included to the project properly, and you have to define _VIDEO_, and setup compiler and linker accordingly)
  - Any type of numerical vector, and they can be converted to any specific other numerical vector
  - Your time series data, with a selected window, basically that will be the frame size, and this determines the number of input neurons
+ - Audio files (.MP3)
 
 Basic usage pseudocode:
 <code>
 
- - inputs = convertInput(your_path);
- - expecteds = convertExpecteds(your_path);
- - vector layerSizes = {x1, x2, ... , xn);		// xn is the number of neurons in each layer, by this you define how many layers there will be 
- - vector activationFunctions = {"Relu", "Sigmoid", ... , "LeakyRelu"}; // NOTE: You have to provide as many strings here as many layers you defined, since this will set layer activations
+ - vector inputs = convertInput(your_path);	// NOTE: Converts the provided folder/.TXT/.MP3/.JPG/.PNG/.BMP/.TGA/.GIF to Neural Network compatible input or output
+ - vector expecteds = convertExpecteds(your_path);	// NOTE: Does the same for expected outputs
+ - vector layerSizes = {L1, L2, ... , Ln);		// NOTE: Ln is the number of neurons in each layer, by this you define how many layers there will be as N and the number of neurons in each layer L
+ - vector activationFunctions = {"Relu", "Sigmoid", ... , "LeakyRelu"}; // NOTE: You have to provide as many strings here as many layers (n) you defined, since this will set each layer's activations correspongingly
 
- - Network network(layerSizes, "OptimizationMethod", "RegulariaztionMethod", "InitializationMethod", optionalDesiredPrecision, optionalDropoutRate);	// These parameters should be provided to create the netwrok. You can set optimization(Adam, Adamax, etc.), regularization(L1, L2) and initialization(We, Xavier, Rand) methods to "none", by default it will use then no opt., reg. and will set initial weights and biases randomly. Optional variables can be left out.
+ - Network network(layerSizes, "OptimizationMethod", "RegulariaztionMethod", "InitializationMethod", optionalDesiredPrecision, optionalDropoutRate);	// NOTE: These parameters should be provided to create the network. You can set optimization(Adam, Adamax, etc.), regularization(L1, L2) and initialization(We, Xavier, Rand) methods to "none", by default it will use then no opt., reg. and will set initial weights and biases randomly. Optional variables can be left out.
 
- - network.trainNetwork("TrainginMethod", inputs, outputs, optionalEchoNumber);	// Training method can be: GradientDescent(gd), StochasticGradienDescent(sgd), BatchGradientDescent(bgd), MinibatchGradientDescent(mgd).
+ - network.trainNetwork("TrainginMethod", inputs, outputs, optionalEchoNumber);	// NOTE: Training method can be: GradientDescent(gd), StochasticGradienDescent(sgd), BatchGradientDescent(bgd), MinibatchGradientDescent(mgd), inputs is the created input vector, outputs is the created output vector, echo number could be set to a higher (~1000) value, so more training cycles will be done.
 
 After training you can check the performance of the network like this:
- - unseenInputs = convertInput(your_path_to_other_inputs);
- - unseedExpecteds = convertExpecteds(yout_path_to_other_expecteds);
- - network.testNetwork(unseenInputs, unseenExpecteds);
+ - unseenInputs = convertInput(your_path_to_other_inputs);	// NOTE: You can use previously "seen" and "unseen" inputs
+ - OPTIONAL: unseedExpecteds = convertExpecteds(yout_path_to_other_expecteds);	// NOTE: Set the expected values this step is OPTIONAL
+ - network.testNetwork(unseenInputs, unseenExpecteds);	// This will perform a feedforward process on the network, and provided by the expected array it will calulate the error rate for the new inputs, if no expected will be provided, you will be returned the output activations array for every input, so you will have to decode, if the NN perfromed as you'd like.
    
 </code>
  Currently this project is in this state: WORK IN PROGRESS!
