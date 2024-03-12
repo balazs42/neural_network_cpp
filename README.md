@@ -31,6 +31,13 @@ After training you can check the performance of the network like this:
  - unseenInputs = convertInput(your_path_to_other_inputs);	// NOTE: You can use previously "seen" and "unseen" inputs
  - OPTIONAL: unseedExpecteds = convertExpecteds(yout_path_to_other_expecteds);	// NOTE: Set the expected values this step is OPTIONAL
  - network.testNetwork(unseenInputs, unseenExpecteds);	// This will perform a feedforward process on the network, and provided by the expected array it will calulate the error rate for the new inputs, if no expected will be provided, you will be returned the output activations array for every input, so you will have to decode, if the NN perfromed as you'd like.
+
+ Brief example for the repo:
+ - Input_file: \path\animalFolder: {dogPic1.jpg, dogPic2.jpg, catPic1.jpg, dogPic3.jpg ....}
+ - Expected_file:\path\animals.txt: {"dog,dog,cat,dog ..."}
+ - vector<vector<float>> inputs = convertInput(Input_file);
+ - vector<vector<float>> expecteds = convertInput(Expected_file);
+ - network.train(inputs, outputs);
    
 </code>
  Currently this project is in this state: WORK IN PROGRESS!
