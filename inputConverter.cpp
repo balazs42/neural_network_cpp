@@ -28,7 +28,8 @@ namespace fs = std::filesystem;
 // Works for: JPEG, PNG, BMP, TGA, and GIF.
 // @param route Valid route for a .jpg/.png/.bmp/.tga/.gif file
 // @return vector<unsigned> type that is usable for the neural network
-vector<unsigned> convertImage(const string& route)
+template<typename T>
+vector<T> convertImage(const string& route)
 {
     // Initialize variables for image width, height, and number of channels per pixel
     int width, height, channels;
@@ -45,7 +46,7 @@ vector<unsigned> convertImage(const string& route)
 
     // Assume the image is grayscale; calculate the size
     size_t imgSize = width * height;
-    std::vector<unsigned> imageData;
+    std::vector<T> imageData;
     imageData.reserve(imgSize);
 
     // Convert each pixel to grayscale and store it in the vector
@@ -59,12 +60,12 @@ vector<unsigned> convertImage(const string& route)
             if (channels >= 3) 
             {
                 // Simple average for grayscale
-                grayValue = (img[offset] + img[offset + 1] + img[offset + 2]) / 3;
+                grayValue = static_cast<T>((img[offset] + img[offset + 1] + img[offset + 2]) / 3);
             }
             else 
             {
                 // If it's already a single channel, just copy it
-                grayValue = img[offset];
+                grayValue = static_cast<T>(img[offset]);
             }
             imageData.push_back(grayValue);
         }
@@ -79,7 +80,8 @@ vector<unsigned> convertImage(const string& route)
 // Converting a whole folder of images
 // @param route Route to the folder
 // @return Returns the array of generated input arrays
-vector<vector<unsigned>> convertImageFolder(const string& route)
+template<typename T>
+vector<vector<T>> convertImageFolder(const string& route)
 {
     // Creating return vector
     std::vector<std::vector<unsigned>> imagesData;
@@ -94,7 +96,7 @@ vector<vector<unsigned>> convertImageFolder(const string& route)
             {
                 // Load and process the image, then add to imagesData
                 std::string imagePath = entry.path().string();
-                std::vector<unsigned> imageData = convertImage(imagePath);
+                std::vector<T> imageData = convertImage<T>(imagePath);
                 imagesData.push_back(imageData);
             }
         }
@@ -112,7 +114,8 @@ vector<vector<unsigned>> convertImageFolder(const string& route)
 }
 
 // Converts a string array to input and output type
-vector<unsigned> convertStrings(const vector<string>& inputStrings)
+template<typename T>
+vector<T> convertStrings(const vector<string>& inputStrings)
 {
     // Return vector
     std::vector<unsigned> output;
@@ -124,7 +127,7 @@ vector<unsigned> convertStrings(const vector<string>& inputStrings)
         {
             // Convert string to unsigned int and add to the output vector
             unsigned long val = std::stoul(str); // stoul converts to unsigned long
-            output.push_back(static_cast<unsigned>(val)); // Cast to unsigned if necessary
+            output.push_back(static_cast<T>(val)); // Cast to unsigned if necessary
         }
         catch (const std::exception& e) 
         {
@@ -141,7 +144,8 @@ vector<unsigned> convertStrings(const vector<string>& inputStrings)
 // @param1 route Route to the txt
 // @param2 separator Character that separates strings
 // @return NN inputable array
-vector<unsigned> convertTxtStrings(const string& route, const char separator)
+template<typename T>
+vector<T> convertTxtStrings(const string& route, const char separator)
 {
     // Vector for the strings in the file denoted by separator
     std::vector<string> outputStrings;
@@ -175,7 +179,7 @@ vector<unsigned> convertTxtStrings(const string& route, const char separator)
     }
 
     // Returning the converted strings
-    return convertStrings(outputStrings);
+    return convertStrings<T>(outputStrings);
 }
 
 // Convert numerical input to unsigneds
@@ -195,11 +199,14 @@ std::vector<T2> convertNumericVector(const std::vector<T1>& input)
 // Convert boolean inputs
 // @param input Input of booelan vectors
 // @return Converted boolean array to unsigned type
-std::vector<unsigned> convertBooleanVector(const std::vector<bool>& input) 
+template<typename T>
+std::vector<T> convertBooleanVector(const std::vector<bool>& input) 
 {
+    const T one = 1;
+    const T zero = 0;
     std::vector<unsigned> output;
     for (bool val : input) 
-        output.push_back(val ? 1 : 0);
+        output.push_back(val ? one : zero);
 
     return output;
 }
