@@ -17,7 +17,6 @@ Provided input and output vector generator functions, currently you can use:
 
 Basic usage pseudocode:
 <code>
-
  - vector inputs = convertInput(your_path);	// NOTE: Converts the provided folder/.TXT/.MP3/.JPG/.PNG/.BMP/.TGA/.GIF to Neural Network compatible input or output
  - vector expecteds = convertExpecteds(your_path);	// NOTE: Does the same for expected outputs
  - vector layerSizes = {L1, L2, ... , Ln);		// NOTE: Ln is the number of neurons in each layer, by this you define how many layers there will be as N and the number of neurons in each layer L
@@ -32,15 +31,15 @@ After training you can check the performance of the network like this:
  - OPTIONAL: unseedExpecteds = convertExpecteds(yout_path_to_other_expecteds);	// NOTE: Set the expected values this step is OPTIONAL
  - network.testNetwork(unseenInputs, unseenExpecteds);	// This will perform a feedforward process on the network, and provided by the expected array it will calulate the error rate for the new inputs, if no expected will be provided, you will be returned the output activations array for every input, so you will have to decode, if the NN perfromed as you'd like.
 
-<code>
- Brief example for the repo:
+
+ <code>Brief example for the repo:
  - string Input_file: \path\animalFolder: {dogPic1.jpg, dogPic2.jpg, catPic1.jpg, dogPic3.jpg ....}
  - string Expected_file:\path\animals.txt: {"dog,dog,cat,dog ..."}
  - vector<vector<float>> inputs = convertInput(Input_file);
  - vector<vector<float>> expecteds = convertInput(Expected_file);
  - // Initializations
- - network.train(inputs, outputs);
- </code>
+ - network.train(inputs, outputs);</code>
+ 
    
 </code>
  Currently this project is in this state: WORK IN PROGRESS!
