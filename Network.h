@@ -88,6 +88,7 @@ public:
 		useL1(false), useL2(false), useDropout(false), dropoutRate(dpr), useWe(false), useXavier(false), 
 		desiredPrecision(desiredPrec), currentPrecision(1.0f)
 	{
+		// Setting beta 1 power and beta 2 power starter values for adam and adamax optimizations
 		beta1Power = beta1PowerStarter;
 		beta2Power = beta2PowerStarter;
 

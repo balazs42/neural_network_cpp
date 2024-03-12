@@ -455,9 +455,9 @@ std::vector<std::vector<float>> createSequences(const std::vector<float>& data, 
 // @param2 separator By default the separator is ',' but it can be changed
 // @return NN usable input 
 template<typename T>
-vector<vector<T>> convertInput(const std::string& inputPath, char separator = ',')
+vector<vector<T>> convertInput(const std::string& inputPath, char separator = ',', bool timeSeries = false, size_t windowSize = 32)
 {
-    vector<vector<T>> outputFrames;
+    vector<vector<T>> outputFrames; // Container to store the output frames
 
     // Check if the inputPath is a directory
     if (std::filesystem::is_directory(inputPath))
@@ -480,8 +480,19 @@ vector<vector<T>> convertInput(const std::string& inputPath, char separator = ',
             outputFrames = convertVideoFolder<T>(inputPath);
 #endif
 #ifdef _TEXT_
-        else if (dominantConent == "text")
+        else if (dominantConent == "text") 
+        {
+            // Checking if the provided data is time series data
+            if (timeSeries)
+            {
+                // Converting time series data from text file to float vector
+                vector<float> seq = convertTxt<float>(inputPath, separator);
+
+                // Returning the created sequence from the window sizes
+                return createSequences(seq, windowSize);
+            }
             outputFrames = convertTxtFolder<T>(inputPath, separator);
+        }
 #endif
     }
     else if (std::filesystem::is_regular_file(inputPath))   // If the path is not a folder
@@ -504,8 +515,19 @@ vector<vector<T>> convertInput(const std::string& inputPath, char separator = ',
             outputFrames[0] = convertVideo(inputPath);
 #endif
 #ifdef _TEXT_
-        else if (extension == ".txt")
+        else if (extension == ".txt") 
+        {
+            // Checking if the provided data is time series data
+            if (timeSeries)
+            {
+                // Converting time series data from text file to float vector
+                vector<float> seq = convertTxt<float>(inputPath, separator);
+
+                // Returning the created sequence from the window sizes
+                return createSequences(seq, windowSize);
+            }
             outputFrames[0] = convertTxt<T>(inputPath);
+        }
 #endif
         else
             std::cerr << "Error: Unsupported file type." << std::endl;

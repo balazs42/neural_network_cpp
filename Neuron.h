@@ -51,10 +51,12 @@ public:
 		squaredGradientAvg(1.0f), squaredGradientSum(1.0f)
 	{}
 
+	// Override for operator=
 	bool operator==(const Neuron& other)
 	{
 		return (bias == other.getBias() && activation == other.getActivation());
 	}
+
 	// Overriding operator=, so copiing all parameters
 	Neuron operator=(const Neuron& rhs)
 	{
@@ -126,10 +128,21 @@ private:
 	static double min(double l, double r) { return (l < r) ? l : r; }
 public:
 	void setActivationFunction(const string& s);
-	double activateNeuron() { return (this->activationFunction)(z); }
-	double activateNeuron(double parameter) { return (this->activationFunction)(parameter); }
-	double activateDerivative(double parameter) { return (this->activationFunction)(parameter); }
 
+	// @return ActFun(this->z)
+	double activateNeuron() { return (this->activationFunction)(z); }
+
+	// Returns the activation function applyed to the parameter
+	// @param parameter The variable that you want to apply ActFunc() to
+	// @return returns the ActFunc(parameter)
+	double activateNeuron(double parameter) { return (this->activationFunction)(parameter); }
+
+	// Returns the derivative activation function applyed to the parameter
+	// @param parameter The variable that you want to apply d/d ActFunc() to
+	// @return returns the d/d ActFunc(parameter)
+	double activateDerivative(double parameter) { return (this->derivativeActivationFunction)(parameter); }
+
+	// Saver function
 	void saveNeuronToXML(std::ofstream& outFile) 
 	{
 		// Write XML tags to represent neuron properties

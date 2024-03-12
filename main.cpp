@@ -1,6 +1,9 @@
 #include <iostream>
 #include "Network.h"
 
+template<typename T>
+extern vector<vector<T>> inputConverter(const std::string& inputPath);
+
 // Provided by an MSC EE student of Budapest University of Technology and Economics
 
 // The backpropagation algorithm's implementation is highly based on this arcticle:
@@ -81,6 +84,9 @@ int main()
 		inputArr.push_back(seventhFrame);
 		inputArr.push_back(eightFrame);
 
+		// Or optionally you can convert input from filesystem
+		//inputArr = inputConverter<unsigned>("your_file_path");		// You can provide a folder path or simple .type files. USABLE: [.JPG, .PNG, .BMP, .TGA, .GIF, .MP3, .TXT, (.MP4)]
+
 		//-----------------------------------//
 
 		// Creating artificial expected array
@@ -103,6 +109,9 @@ int main()
 		expArr.push_back(sixthExpected);
 		expArr.push_back(seventhExpected);
 		expArr.push_back(eightExpected);
+
+		// Or optionally you can convert expected from filesystem
+		// expArr = inputConverter<unsigned>("your_file_path");		// You can provide a folder path or simple .type files. USABLE: [.JPG, .PNG, .BMP, .TGA, .GIF, .MP3, .TXT, (.MP4)]
 
 		//-----------------------------------//
 
