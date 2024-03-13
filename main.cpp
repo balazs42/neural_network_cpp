@@ -91,7 +91,7 @@ int main()
 		// First define the number of neurons in each layer
 		// each layer should have a numerical value greater then 0
 		// Do NOT change INPUT_LAYER_SIZE and OUTPUT_LAYER SIZE or it's position
-		vector<unsigned> hiddenLayerSizes = { INPUT_LAYER_SIZE, 20, OUTPUT_LAYER_SIZE };
+		vector<unsigned> hiddenLayerSizes = { INPUT_LAYER_SIZE, 10, 10, OUTPUT_LAYER_SIZE };
 
 		// Create network object, with the specified optimization and regularization and initialization techniques
 		Network network(hiddenLayerSizes,	// Hidden layer sizes
@@ -121,7 +121,7 @@ int main()
 		//-----------------------------------//
 
 		// Training network, with the provided data
-		network.trainNetwork("sgd", inputArr, expArr, 100);
+		network.trainNetwork("GD", inputArr, expArr, 10);
 
 		//-----------------------------------//
 
