@@ -1,30 +1,47 @@
 # Neural Network Project
-This project is developed by an MSC EE student at the Budapest University of Technology and Economics (BME). It is inspired by 3Blue1Brown's insightful article on backpropagation calculus, which can be found [here](https://www.3blue1brown.com/lessons/backpropagation-calculus).
+This project is developed by an MSC EE student at the Budapest University of Technology and Economics (BME). It is inspired by 3Blue1Brown's insightful article on backpropagation calculus, which can be found [here](https://www.3blue1brown.com/lessons/backpropagation-calculus). And the amazing article of Michael Nielsen  "Neural Networks and Deep Learning" - http://neuralnetworksanddeeplearning.com/chap2.html
 
 ## Project Overview
-The implementation offers a fresh take on the backpropagation algorithm. The classes used throughout the project draw significant inspiration from the aforementioned article. 
+This repository houses a comprehensive C++ implementation of a neural network, designed and developed with a focus on flexibility, performance, and ease of use. Inspired by the foundational concepts outlined in Michael Nielsen's "Neural Networks and Deep Learning", this project seeks to provide a hands-on approach to understanding and applying neural networks in various domains, including but not limited to image recognition, data analysis, and natural language processing. The classes used throughout the project draw significant inspiration from the aforementioned article. 
 
 ### Features
-The project includes versatile input and output vector generator functions to accommodate a wide range of data types, enhancing the neural network's applicability. Currently supported data types include:
-- Folders of images (supported formats: .JPG, .PNG, .BMP, .TGA, .GIF)
-- Single images
-- Boolean vectors
-- Vectors of strings
-- Text data (.TXT) with customizable separators (e.g., "dog,dog,cat,dog,cat...")
-- Chopped frames from an .MP4 video file (Note: Requires proper inclusion of OpenCV, defining `_VIDEO_`, and setup of compiler and linker)
-- Numerical vectors of any type, convertible to other numerical vectors
-- Time series data with selected window size determining the number of input neurons
-- Audio files (.MP3)
-- Image reconstruction to .BMP
+ - Configurable Architecture: Design your neural network architecture with ease, specifying the number of layers, neurons per layer, and activation functions.
+ - Diverse Activation Functions: Choose from a variety of activation functions, including Sigmoid, Tanh, ReLU, Leaky ReLU, ELU, and Swish, to best fit your application.
+ - Advanced Optimization Algorithms: Leverage sophisticated optimization techniques such as Adam, RMSProp, Adagrad, Adadelta, NAG, and Adamax for efficient training.
+ - Regularization Techniques: Implement L1 and L2 regularization to combat overfitting and improve generalization.
+ - Intelligent Weight Initialization: Utilize He and Xavier initialization methods to start training with strategically chosen weights.
+ - OpenMP Parallelization: Benefit from enhanced performance on multicore processors through OpenMP-based parallelization of key operations.
+ - Comprehensive Input Conversion: Prepare image, audio, and text data for training with versatile input conversion utilities.
+	- Folders of images (supported formats: .JPG, .PNG, .BMP, .TGA, .GIF)
+	- Single images
+	- Boolean vectors
+	- Vectors of strings
+	- Text data (.TXT) with customizable separators (e.g., "dog,dog,cat,dog,cat...")
+	- Chopped frames from an .MP4 video file (Note: Requires proper inclusion of OpenCV, defining `_VIDEO_`, and setup of compiler and linker)
+	- Numerical vectors of any type, convertible to other numerical vectors
+	- Time series data with selected window size determining the number of input neurons
+	- Audio files (.MP3)
+	- Image reconstruction to .BMP
 
+### Prerequisites
+A C++ compiler supporting C++17 and OpenMP (e.g., GCC, Clang).
+  
+## Project Structure
+The implementation is modular, organized into several key components to ensure clarity and maintainability:
+- Neuron: Defines the fundamental building block of the network, encapsulating the activation function, bias, gradient, and delta calculations, and other optimization required variables.
+- Layer: Manages collections of neurons, representing discrete layers within the neural network architecture.
+- Edge: Represents connections between neurons, including weight management and optimization-related properties.
+- Network: Orchestrates the neural network, managing layers, forwarding inputs, backpropagation, and training.
+- inputConverter: Offers utility functions for converting diverse data types (images, audio, text) into a standardized format for network training.
+  
 ### Brief example
-- string animalFolder = "\path\animalFolder"; // Animal folder = {dogPic1.jpg, dogPic2.jpg, dogPic3.png, catPic1.jpg, dogPic4.jpg ... }
-- string expectedAnimalsTxt = "\path\expectedAnimals.txt"; // txt = {"dog,dog,dog,cat,dog..."}
-- vector<vector<float> inputFrames = convertInput(animalFolder);
-- vector<vector<float>> expValues = convertInput(expectedAnimalsTxt);
+- string `animalFolder` = "\path\animalFolder"; // Animal folder = {dogPic1.jpg, dogPic2.jpg, dogPic3.png, catPic1.jpg, dogPic4.jpg ... }
+- string `expectedAnimalsTxt` = "\path\expectedAnimals.txt"; // txt = {"dog,dog,dog,cat,dog..."}
+- vector<vector<float> `inputFrames` = convertInput(animalFolder);
+- vector<vector<float>> `expValues` = convertInput(expectedAnimalsTxt);
 - Other initializations
-- Network network(); // Initialize with corresponding parameters (SEEN BELOW)
-- network.trainNetwork(inputFrames, expValues);
+- `Network network();` // Initialize with corresponding parameters (SEEN BELOW)
+- `network.trainNetwork(inputFrames, expValues);`
 
 #### Basic and Example Usage
 ```cpp
@@ -43,7 +60,7 @@ network.trainNetwork("TrainingMethod", inputs, outputs, optionalEchoNumber);
 unseenInputs = convertInput(your_path_to_other_inputs);
 OPTIONAL: unseenExpecteds = convertExpecteds(your_path_to_other_expecteds);
 network.testNetwork(unseenInputs, unseenExpecteds);
-
+```cpp
 
 // This is an example of how you could use this repository
 int main()
