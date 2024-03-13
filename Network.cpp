@@ -202,7 +202,7 @@ void Network::printNetwork()
  * @param filename Path and name of the file to save the network's configuration.
  * @param network Reference to the network instance to be saved.
  */
-void Network::saveNetworkToXML(const string& filename, Network& network)
+void Network::saveNetworkToXML(const string& filename)
 {
     std::ofstream outFile(filename);
     if (!outFile.is_open())
@@ -212,42 +212,48 @@ void Network::saveNetworkToXML(const string& filename, Network& network)
     }
 
     // Write XML header
-    outFile << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" << "\n";
-    outFile << "<Network>" << "\n";
+    outFile << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
+    outFile << "<Network>\n";
 
-    //<parameter> layer1NeuronNum layer2NeuronNum ... LayerNNeuronNum OptimizationTechnique</parameter> 
-    outFile << "<parameter> ";
-    for (unsigned i = 0; i < network.getLayers().size(); i++)
-        outFile << network.getLayers()[i].getNumberOfNeurons() << " ";
-    
-    // Printing optimization technique
-    string opt = network.getOptimization();
+    // Print basic network information
+    outFile << "\t<parameters>\n";
+    outFile << "\t\t<layers>\n";
 
-    outFile << opt << "\n";
-
-    outFile << "</parameter>" << "\n";
-
-    // Save neurons
-    for (unsigned i = 0; i < network.getLayers().size(); i++)
+    // Printing layer information
+    for (unsigned i = 0; i < layers.size(); i++)
     {
-        Neuron* thisLayer = network.getLayers()[i].getThisLayer();
-
-        // Saving each neuron
-        for (unsigned j = 0; j < network.getLayers()[i].getNumberOfNeurons(); j++)
-            thisLayer[j].saveNeuronToXML(outFile);
+        outFile << "\t\t\t<layer" << i << ">" << layers[i].getNumberOfNeurons() << "</layer" << i << ">\n";                                                         // Printing number of neurons
+        outFile << "\t\t\t<activationFunction" << i << ">" << layers[i].getThisLayer()[0].getActivationFunctionString() << "</activationFunction" << i << ">\n";    // Printing layer activation functions
     }
 
-    // Save edges
-    for (unsigned i = 0; i < network.getEdges().size(); i++)
+    outFile << "\t\t</layers>\n";
+    outFile << "\t</parameters>\n";
+
+    // Printing baises
+    outFile << "\t<biases>\n";
+    for (unsigned i = 0; i < layers.size(); i++)
     {
-        for (unsigned j = 0; j < network.getLayers()[i].getNumberOfNeurons(); j++)
-        {
-            for (unsigned k = 0; k < network.getLayers()[i + 1].getNumberOfNeurons(); k++)
-            {
-                network.getEdges()[i][j][k].saveEdgeToXML(outFile);
-            }
-        }
+        Neuron* thisLayer = layers[i].getThisLayer();
+        unsigned layerSize = layers[i].getNumberOfNeurons();
+
+        for (unsigned j = 0; j < layerSize; j++)
+            outFile << "\t\t<bias" << j << ">" << thisLayer[j].getBias() << "</bias" << j << ">\n";
     }
+    outFile << "\t</biases>\n";
+
+    outFile << "\t<edges>\n";
+    // Printing edge weights
+    for (unsigned i = 0; i < layers.size() - 1; i++)
+    {
+        unsigned leftSize = layers[i].getNumberOfNeurons();
+        unsigned rightSize = layers[i + 1].getNumberOfNeurons();
+
+        // Printing edges
+        for (unsigned j = 0; j < leftSize; j++)
+            for (unsigned k = 0; k < rightSize; k++)
+                outFile << "\t\t\<edge" << j << "," << k << ">" << edges[i][j][k].getWeight() << "</edge" << j << "," << k << ">\n";
+    }
+    outFile << "\t</edges>\n";
 
     // Close XML tag
     outFile << "</Network>" << "\n";
@@ -255,14 +261,188 @@ void Network::saveNetworkToXML(const string& filename, Network& network)
     outFile.close(); // Close the file
 }
 
+// Fetching numerical value in string from an XML like structure
+// in a style of: ....>NUMBERsubstring....
+// @param line Line where number is being searched
+// @param subString The substring which is exactly behind the number
+// @return String of the number or "null" string if nout found any numbers
+string fetchString(const string& line, const string& subString)
+{
+    size_t pos = line.find(subString);
+    if (pos != std::string::npos) 
+    {
+        size_t start = line.rfind('>', pos) + 1; // Find the last '>' before our substring
+        return line.substr(start, pos - start);
+    }
+    return "null";
+}
+
+// Skips the lines in a file until the specified substring is found
+// @param stream Stream to skip lines on
+// @param until The substring the is searched in the line
+void skipLineUntil(std::ifstream& stream, const string& until)
+{
+    string line;
+    while (std::getline(stream, line))
+    {
+        auto iter = line.find(until);
+        if (iter != std::string::npos)return;
+    }
+}
+
 /**
  * Loads a network configuration from an XML file into the current network instance.
  *
  * @param route Path and name of the XML file containing the network's configuration.
  */
-void Network::loadNetworkFromXML(const string& route)
+Network Network::loadNetworkFromXML(const string& route)
 {
+    std::ifstream networkFile(route);
 
+    if (!networkFile.is_open())
+    {
+        std::cerr << "Error: Unable to open file for reading: " << route << "\n";
+        std::cerr << "Returning empty network object\n";
+        return Network();
+    }
+
+    string line;
+
+    // Find where data starts
+    skipLineUntil(networkFile, "<Network>");
+
+    vector<string> activationFunctions;
+    vector<unsigned> layerSizes;
+
+    // Getting layer information
+    skipLineUntil(networkFile, "<layers>");
+
+    while (std::getline(networkFile, line))
+    {
+        auto iter = line.find("</layers>");
+        if (iter != std::string::npos)
+            break;
+       
+        // If the read line is number of neurons information
+        string fetched = fetchString(line, "</layer");
+
+        if (fetched != "null")
+        {
+            layerSizes.push_back(stol(fetched));
+            continue;
+        }
+
+        // If the read line is an activation funciton
+        fetched = fetchString(line, "</activationFunction");
+        
+        if (fetched != "null")
+        {
+            activationFunctions.push_back(fetched);
+            continue;
+        }
+    }
+
+    // Creating network constructor objects variables
+    // Creating layers, only allocating memory, no initialization or loading
+    vector<Layer> loadedLayers;
+    for (unsigned i = 0; i < layerSizes.size(); i++)
+        loadedLayers.push_back(Layer(layerSizes[i]));
+
+    // Creating edges, only allocating memory no initialization or laoding 
+    vector<Edge**> loadedEdges;
+    for (unsigned i = 0; i < layerSizes.size() - 1; i++)
+    {
+        unsigned leftSize = loadedLayers[i].getNumberOfNeurons();
+        unsigned rightSize = loadedLayers[i + 1].getNumberOfNeurons();
+        
+        Edge** edges = new Edge * [leftSize];
+        for (unsigned j = 0; j < leftSize; j++)
+            edges[j] = new Edge[rightSize];
+
+        loadedEdges.push_back(edges);
+    }
+
+    vector<double> biases;
+    vector<double> weights;
+
+    // Going to bias data
+    skipLineUntil(networkFile, "<biases>");
+
+    // Reading each line for biases
+    while (std::getline(networkFile, line))
+    {
+        auto iter = line.find("</biases>");     // Reading until the end of biases
+        if (iter != std::string::npos)break;
+
+        string fetched = fetchString(line, "</bias");
+        if (fetched != "null")
+        {
+            biases.push_back(std::stod(fetched));
+            continue;
+        }
+    }
+
+    // Going to edge data
+    skipLineUntil(networkFile, "<edges>");
+
+    // Reading each edges data
+    while (std::getline(networkFile, line))
+    {
+        // Escape condition
+        auto iter = line.find("</edges>");
+        if (iter != std::string::npos)break;
+
+        string fetched = fetchString(line, "</edge");
+        if (fetched != "null")
+        {
+            weights.push_back(std::stod(fetched));
+            continue;
+        }
+    }
+
+    // Closing file to start loading values
+    networkFile.close();
+    unsigned biasCounter = 0;
+
+    // Loading biases into the created network object
+    for (unsigned i = 0; i < loadedLayers.size(); i++)
+    {
+        Neuron* thisLayer = loadedLayers[i].getThisLayer();
+        unsigned layerSize = loadedLayers[i].getNumberOfNeurons();
+
+        for (unsigned j = 0; j < layerSize; j++)
+        {
+            // Setting bias of each neuron to be the loaded one
+            thisLayer[j].setBias(biases[biasCounter]);
+            biasCounter++;
+        }
+    }
+
+    unsigned weightCounter = 0;
+
+    // Loading weights into the created network object
+    for (unsigned i = 0; i < loadedLayers.size() - 1; i++)
+    {
+        unsigned leftSize = loadedLayers[i].getNumberOfNeurons();
+        unsigned rightSize = loadedLayers[i + 1].getNumberOfNeurons();
+
+        for (unsigned j = 0; j < leftSize; j++)
+        {
+            for (unsigned k = 0; k < rightSize; k++)
+            {
+                loadedEdges[i][j][k].setWeight(weights[weightCounter]);
+                weightCounter++;
+            }
+        }
+    }
+
+    // Creating return instance
+    Network newNetwork(edges, layers);
+
+    // Setting activation functions
+    newNetwork.setLayerActivationFunctions(activationFunctions);
+
+    return newNetwork;
 }
 
 /***************************************/
@@ -299,7 +479,7 @@ void Network::calculateDeltaActivation()
                 error += edges[i][j][k].getWeight() * rightLayer[k].getError();
             }
             // * d/dActFun(z) 
-            error *= leftLayer[j].activateDerivative(leftLayer[j].getZ());
+            error *= leftLayer[j].derivativeActivationFunction(leftLayer[j].getZ());
             leftLayer[j].setError(error);
         }
     }
@@ -698,7 +878,7 @@ void Network::adadeltaOptimization(double decayRate, double epsilon)
         {
             Neuron& neuron = thisLayer[j];
 
-            double gradBias = neuron.getError() * neuron.activateDerivative(neuron.getZ()); 
+            double gradBias = neuron.getError() * neuron.derivativeActivationFunction(neuron.getZ()); 
             double squaredGrad = gradBias * gradBias;
 
             // Update running averages

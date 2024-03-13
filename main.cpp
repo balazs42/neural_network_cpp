@@ -29,8 +29,6 @@ int main()
 {
 	try
 	{
-		//-----------------------------------//
-
 		// This is an artifically created input array, you have to bring your input 
 		// to some numerical type array, then pass it to the network.
 
@@ -91,7 +89,7 @@ int main()
 		// First define the number of neurons in each layer
 		// each layer should have a numerical value greater then 0
 		// Do NOT change INPUT_LAYER_SIZE and OUTPUT_LAYER SIZE or it's position
-		vector<unsigned> hiddenLayerSizes = { INPUT_LAYER_SIZE, OUTPUT_LAYER_SIZE };
+		vector<unsigned> hiddenLayerSizes = { INPUT_LAYER_SIZE, 100, OUTPUT_LAYER_SIZE };
 
 		// Create network object, with the specified optimization and regularization and initialization techniques
 		Network network(hiddenLayerSizes,	// Hidden layer sizes: 	this vector should be organized like this: [INPUT_LAYER_SIZE, HL1, HL2, ... , HLn, OUTPUT_LAYER_SIZE], so you can change HLi = Number of neurons in i-th hidden layer
@@ -100,7 +98,7 @@ int main()
 						"Xavier",			// Initialization technique [We, Xavier, Random]
 						inputArr,			// Vector of input frames	[Your input frames collected to a numerical vector], TIP: inputConverter("file_paht") will process your dataset of several files
 						expArr,				// Vector of expected output frames	[Your expected frames collected to a numerical vector], TIP: inputConverter("file_paht") will process your dataset of several files
-						0.03f,				// Desired precision 0.05: 5 [%] error rate after training
+						0.05f,				// Desired precision 0.05: 5 [%] error rate after training
 						0.2f				// Dropout rate: On average 100 - 20 = 80% of neurons will fire on a random selection
 		);
 
@@ -124,6 +122,8 @@ int main()
 
 		// Training network, with the provided data
 		network.trainNetwork("GD", inputArr, expArr, 5);
+		network.saveNetworkToXML("test.xml");
+		//network.loadNetworkFromXML("test.xml");
 
 		//-----------------------------------//
 
@@ -148,6 +148,8 @@ int main()
 
 		testExpArr.push_back(testExpected1);
 		testExpArr.push_back(testExpected2);
+
+		
 
 		// Start test, function will provide error data on
 		// Standard output

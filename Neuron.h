@@ -42,12 +42,12 @@ private:
 	typedef double (*FunctionPointer)(double);// Function pointer type
 
 	// Activation function pointers
-	FunctionPointer activationFunction;
-	FunctionPointer derivativeActivationFunction;
+	FunctionPointer actFun;
+	FunctionPointer derActFun;
 
 public:
-	Neuron() : activation(0.0f), bias(0.0f), error(0.0f), z(0.0f), activationFunction(&Sigmoid),
-		derivativeActivationFunction(&DSigmoid), deltaActivation(0.0f), deltaBias(0.0f), 
+	Neuron() : activation(0.0f), bias(0.0f), error(0.0f), z(0.0f), actFun(&Sigmoid),
+		derActFun(&DSigmoid), deltaActivation(0.0f), deltaBias(0.0f), 
 		firstMoment(1.0f), secondMoment(1.0f), 
 		squaredGradientAvg(1.0f), squaredGradientSum(1.0f), deltaBiasAvg(1.0f)
 	{}
@@ -76,8 +76,8 @@ public:
 		secondMoment = rhs.getSecondMoment();
 		squaredGradientSum = rhs.getSquaredGradientSum();
 		squaredGradientAvg = rhs.getSquaredGradientAvg();
-		activationFunction = rhs.getActivationFunction();
-		derivativeActivationFunction = rhs.getDerivativeActivationFunction();
+		actFun = rhs.getActivationFunction();
+		derActFun = rhs.getDerivativeActivationFunction();
 
 		// Return reference to the left-hand side object
 		return *this;
@@ -95,21 +95,21 @@ public:
 	double getSquaredGradientSum() const { return squaredGradientSum; }
 	double getSquaredGradientAvg() const { return squaredGradientAvg; }
 	double getDeltaBiasAvg() const { return deltaBiasAvg; }
-	functionPtr getActivationFunction() const { return activationFunction; }
-	functionPtr getDerivativeActivationFunction() const { return derivativeActivationFunction; }
+	functionPtr getActivationFunction() const { return actFun; }
+	functionPtr getDerivativeActivationFunction() const { return derActFun; }
 
 	string getActivationFunctionString() const {
-		if (activationFunction == &Sigmoid)
+		if (actFun == &Sigmoid)
 			return "Sigmoid";
-		else if (activationFunction == &Relu)
+		else if (actFun == &Relu)
 			return "Relu";
-		else if (activationFunction == &Tanh)
+		else if (actFun == &Tanh)
 			return "Tanh";
-		else if (activationFunction == &LeakyRelu)
+		else if (actFun == &LeakyRelu)
 			return "LeakyRelu";
-		else if (activationFunction == &ELU)
+		else if (actFun == &ELU)
 			return "Elu";
-		else if (activationFunction == &Swish)
+		else if (actFun == &Swish)
 			return "Swish";
 	}
 
@@ -148,17 +148,17 @@ public:
 	void setActivationFunction(const string& s);
 
 	// @return ActFun(this->z)
-	double activateNeuron() { return (this->activationFunction)(z); }
+	double activationFunction() { return (this->actFun)(z); }
 
 	// Returns the activation function applyed to the parameter
 	// @param parameter The variable that you want to apply ActFunc() to
 	// @return returns the ActFunc(parameter)
-	double activateNeuron(double parameter) { return (this->activationFunction)(parameter); }
+	double activationFunction(double parameter) { return (this->actFun)(parameter); }
 
 	// Returns the derivative activation function applyed to the parameter
 	// @param parameter The variable that you want to apply d/d ActFunc() to
 	// @return returns the d/d ActFunc(parameter)
-	double activateDerivative(double parameter) { return (this->derivativeActivationFunction)(parameter); }
+	double derivativeActivationFunction(double parameter) { return (this->derActFun)(parameter); }
 
 	// Saver function
 	void saveNeuronToXML(std::ofstream& outFile) 

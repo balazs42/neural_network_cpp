@@ -446,7 +446,7 @@ private:
 				rightLayer[j].setZ(z);
 
 				// Setting current neurons activation as: activation = activationFunction(z); [for example: a = sigmoid(z)]
-				double activation = rightLayer[j].activateNeuron(rightLayer[j].getZ());
+				double activation = rightLayer[j].activationFunction(rightLayer[j].getZ());
 				rightLayer[j].setActivation(activation);
 			}
 		}
@@ -753,10 +753,10 @@ private:
 public:
 	
 	// Save network to file
-	static void saveNetworkToXML(const string& fileName, Network& network);
+	void saveNetworkToXML(const string& fileName);
 
 	// Load network to previously created network
-	static void loadNetworkFromXML(const string& route);
+	Network loadNetworkFromXML(const string& route);
 
 	/**
 	 * Trains the neural network using the specified training method and parameters.

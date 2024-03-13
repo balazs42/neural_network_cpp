@@ -90,33 +90,33 @@ void Neuron::setActivationFunction(const string& s)
 {
     if (s == "Sigmoid") 
     {
-        this->activationFunction = &Sigmoid;
-        this->derivativeActivationFunction = &DSigmoid;
+        this->actFun = &Sigmoid;
+        this->derActFun = &DSigmoid;
     }
     else if (s == "Tanh") 
     {
-        this->activationFunction = &Tanh;
-        this->derivativeActivationFunction = &DTanh;
+        this->actFun = &Tanh;
+        this->derActFun = &DTanh;
     }
     else if (s == "Relu") 
     {
-        this->activationFunction = &Relu;
-        this->derivativeActivationFunction = &DRelu;
+        this->actFun = &Relu;
+        this->derActFun = &DRelu;
     }
     else if (s == "Swish") 
     {
-        this->activationFunction = &Swish;
-        this->derivativeActivationFunction = &DSwish;
+        this->actFun = &Swish;
+        this->derActFun = &DSwish;
     }
     else if (s == "LeakyRelu") 
     {
-        this->activationFunction = &LeakyRelu;
-        this->derivativeActivationFunction = &DLeakyRelu;
+        this->actFun = &LeakyRelu;
+        this->derActFun = &DLeakyRelu;
     }
     else if (s == "ELU") 
     {
-        this->activationFunction = &ELU;
-        this->derivativeActivationFunction = &DELU;
+        this->actFun = &ELU;
+        this->derActFun = &DELU;
     }
     else {
         throw out_of_range("Invalid activation function, check code!");

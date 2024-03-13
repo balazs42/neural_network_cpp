@@ -15,7 +15,7 @@
 #define _IMAGE_    
 #define _AUDIO_
 #define _TEXT_
-//#define _VIDEO_
+//#define _VIDEO_   // Work in progress, currently no video inputs
 
 #ifdef _IMAGE_
 #define STB_IMAGE_IMPLEMENTATION    // Image handling functions
@@ -157,6 +157,28 @@ void reconstructImageFromVector(const std::vector<float>& vec, int width = 100, 
 /**************************************************************/
 #ifdef _TEXT_
 
+// Function to get the bits of an unsigned integer
+// @param num Number to be converted to bits
+// @return Vector of 0,1 values
+std::vector<unsigned> getBits(unsigned num)
+{
+    std::vector<unsigned> bits;
+    for (int i = sizeof(unsigned) * 8 - 1; i >= 0; --i)
+        bits.push_back((num >> i) & 1);
+    return bits;
+}
+
+// Function to reconstruct an unsigned integer from its bits
+// @param bits Bits ordered in a vector
+// @return The reconstructed unsigned number
+unsigned reconstructFromBits(const std::vector<unsigned>& bits)
+{
+    unsigned num = 0;
+    for (size_t i = 0; i < bits.size(); ++i)
+        num |= (bits[i] << (bits.size() - i - 1));
+    return num;
+}
+
 // Loading English word dictionary to hashmap
 // @param filePath Path to the english word dictionary where each word is a separate line
 // @return The hashmap created from the words
@@ -179,9 +201,8 @@ std::unordered_map<std::string, unsigned> loadDictionary(const std::string& file
     return dictionary;
 }
 
-// Converts a string array to input and output type
-template<typename T>
-vector<T> convertStrings(const vector<string>& inputStrings)
+// Converts a string array to unsigned type
+vector<unsigned> convertStrings(const vector<string>& inputStrings)
 {
     // Loading Database
     std::unordered_map<std::string, unsigned> dictionary = loadDictionary();
@@ -199,7 +220,7 @@ vector<T> convertStrings(const vector<string>& inputStrings)
             for (auto iter : dictionary)
             {
                 if (iter.first == str)
-                    output.push_back(static_cast<T>(iter->second));
+                    output.push_back(iter.second);
                 else
                     entryCounter++;
             }
@@ -221,8 +242,7 @@ vector<T> convertStrings(const vector<string>& inputStrings)
 // @param1 route Route to the txt
 // @param2 separator Character that separates strings
 // @return NN inputable array
-template<typename T>
-vector<T> convertTxt(const string& route, const char separator)
+vector<vector<unsigned>> convertTxt(const string& route, const char separator)
 {
     // Vector for the strings in the file denoted by separator
     std::vector<string> outputStrings;
@@ -255,18 +275,23 @@ vector<T> convertTxt(const string& route, const char separator)
         }
     }
 
-    // Returning the converted strings
-    return convertStrings<T>(outputStrings);
+    vector<unsigned> stringsAsUnsigned = convertStrings(outputStrings);
+
+    vector<vector<unsigned>> returnVector;
+
+    for (unsigned i = 0; i < stringsAsUnsigned.size(); i++)
+        returnVector.push_back(getBits(stringsAsUnsigned[i]));
+    
+    return returnVector;
 }
 
 // Converting a whole folder of text inputs
 // @param1 route Route to the folder of text files
 // @param2 separator Separator character in the text files
 // @return Returns the array of generated input arrays
-template<typename T>
-std::vector<std::vector<T>> convertTxtFolder(const std::string& folderPath, const char separator)
+vector<vector<vector<unsigned>>> convertTxtFolder(const std::string& folderPath, const char separator)
 {
-    std::vector<std::vector<T>> results;
+    vector<vector<vector<unsigned>>> results;
 
     for (const auto& entry : std::filesystem::directory_iterator(folderPath))
     {
@@ -279,7 +304,7 @@ std::vector<std::vector<T>> convertTxtFolder(const std::string& folderPath, cons
 
             // Check if the file is an image based on its extension
             if (extension == ".txt")
-                results.push_back(convertTxt<T>(filePath, separator));
+                results.push_back(convertTxt(filePath, separator));
         }
     }
 
@@ -593,7 +618,7 @@ vector<vector<T>> convertInput(const std::string& inputPath, char separator = ',
                 // Returning the created sequence from the window sizes
                 return createSequences(seq, windowSize);
             }
-            outputFrames = convertTxtFolder<T>(inputPath, separator);
+            outputFrames = convertTxtFolder(inputPath, separator);
         }
 #endif
     }
