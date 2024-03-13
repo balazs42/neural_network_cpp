@@ -5,13 +5,13 @@ This project is developed by an MSC EE student at the Budapest University of Tec
 This repository houses a comprehensive C++ implementation of a neural network, designed and developed with a focus on flexibility, performance, and ease of use. Inspired by the foundational concepts outlined in Michael Nielsen's "Neural Networks and Deep Learning", this project seeks to provide a hands-on approach to understanding and applying neural networks in various domains, including but not limited to image recognition, data analysis, and natural language processing. The classes used throughout the project draw significant inspiration from the aforementioned articles. 
 
 ### Features
- - Configurable Architecture: Design your neural network architecture with ease, specifying the number of layers, neurons per layer, and activation functions.
- - Diverse Activation Functions: Choose from a variety of activation functions, including Sigmoid, Tanh, ReLU, Leaky ReLU, ELU, and Swish, to best fit your application.
- - Advanced Optimization Algorithms: Leverage sophisticated optimization techniques such as Adam, RMSProp, Adagrad, Adadelta, NAG, and Adamax for efficient training.
- - Regularization Techniques: Implement L1 and L2 regularization to combat overfitting and improve generalization.
- - Intelligent Weight Initialization: Utilize He and Xavier initialization methods to start training with strategically chosen weights.
- - OpenMP Parallelization: Benefit from enhanced performance on multicore processors through OpenMP-based parallelization of key operations.
- - Comprehensive Input Conversion: Prepare image, audio, and text data for training with versatile input conversion utilities.
+ - `Configurable Architecture`: Design your neural network architecture with ease, specifying the number of layers, neurons per layer, and activation functions.
+ - `Diverse Activation Functions`: Choose from a variety of activation functions, including ``Sigmoid, Tanh, ReLU, Leaky ReLU, ELU``, and Swish, to best fit your application.
+ - `Advanced Optimization Algorithms`: Leverage sophisticated optimization techniques such as ``Adam, RMSProp, Adagrad, Adadelta, NAG, and Adamax`` for efficient training.
+ - `Regularization Techniques`: Implement ``L1`` and ``L2`` regularization to combat overfitting and improve generalization.
+ - `Intelligent Weight Initialization`: Utilize ``He`` and ``Xavier`` initialization methods to start training with strategically chosen weights.
+ - `OpenMP Parallelization`: Benefit from enhanced performance on multicore processors through ``OpenMP-based parallelization`` of key operations.
+ - `Comprehensive Input Conversion`: Prepare ``image, audio, and text`` data for training with versatile input conversion utilities.
 	- Folders of images (supported formats: .JPG, .PNG, .BMP, .TGA, .GIF)
 	- Single images
 	- Boolean vectors
