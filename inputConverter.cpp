@@ -8,6 +8,8 @@
 #include <map>
 #include <tuple>
 #include <cstring> // for memcpy
+#include <unordered_map>
+#include <stdexcept>
 
 // Define which functions you want to use, and then those functions will be available
 #define _IMAGE_    
@@ -154,10 +156,36 @@ void reconstructImageFromVector(const std::vector<float>& vec, int width = 100, 
 /***************** Text handling functions ********************/
 /**************************************************************/
 #ifdef _TEXT_
+
+// Loading English word dictionary to hashmap
+// @param filePath Path to the english word dictionary where each word is a separate line
+// @return The hashmap created from the words
+std::unordered_map<std::string, unsigned> loadDictionary(const std::string& filePath = "english_dictionary_database.txt")
+{
+    // Hashmap to hold the dictionary
+    std::unordered_map<std::string, unsigned> dictionary;
+    std::ifstream englishDB(filePath);
+
+    // Checking if DB is open
+    if (!englishDB.is_open()) 
+        throw std::runtime_error("Cannot open English database, check file!");
+
+    std::string line;
+    unsigned counter = 0;
+
+    while (std::getline(englishDB, line)) 
+        dictionary[line] = counter++;
+
+    return dictionary;
+}
+
 // Converts a string array to input and output type
 template<typename T>
 vector<T> convertStrings(const vector<string>& inputStrings)
 {
+    // Loading Database
+    std::unordered_map<std::string, unsigned> dictionary = loadDictionary();
+
     // Return vector
     std::vector<unsigned> output;
 
@@ -166,15 +194,17 @@ vector<T> convertStrings(const vector<string>& inputStrings)
     {
         try
         {
-            // Convert string to unsigned int and add to the output vector
-            unsigned long val = std::stoul(str); // stoul converts to unsigned long
-            output.push_back(static_cast<T>(val)); // Cast to unsigned if necessary
+            auto iterator = dictionary.find(s);
+
+            // If word is found push_back to output vector with casting to the specific type
+            if (iterator != dictionary.end())
+                output.push_back(static_cast<T>(iterator->second));
         }
         catch (const std::exception& e)
         {
             // Handle the case where the conversion fails
             std::cerr << "Conversion failed for string \"" << str << "\": " << e.what() << '\n';
-            // Decide how to handle the error, e.g., skip the item, use a default value, or terminate
+            std::cerr << "Update database with new word! " << str << '\n';
         }
     }
 

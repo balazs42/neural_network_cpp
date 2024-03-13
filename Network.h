@@ -12,6 +12,8 @@
 #include <iostream>
 #include <string>
 #include <iomanip> // Include for std::setprecision and std::fixed
+#include <chrono> // For simulating a delay
+#include <thread> // For simulating a delay
 
 #include "Layer.h"	// Include for Layer class
 #include "Edge.h"	// Include for Edge class
@@ -82,7 +84,8 @@ public:
 		useL1(false), useL2(false), useDropout(false), dropoutRate(0.5f), useWe(false), useXavier(false),
 		desiredPrecision(0.04f), currentPrecision(1.0f), epoch(0)
 	{
-
+		beta1Power = beta1PowerStarter;
+		beta2Power = beta2PowerStarter;
 	}
 
 	/**
@@ -789,6 +792,8 @@ public:
 		// Converting vectors
 		convertInput(inArr, expArr, convertedInArr, convertedExpArr);
 
+		double currentMinPrec = 100.0f;
+
 		// Training until the precision gets to the desired one
 		while (currentPrecision > desiredPrecision)
 		{
@@ -820,7 +825,19 @@ public:
 
 			// Calculating precision of network
 			calculateMSE(convertedInArr, inArr[0].size(), convertedExpArr, expArr[0].size());
-			std::cout << "\n\nCurrent precision: " << this->getCurrentPrecision() << "\n\n";
+
+			// Updating precision printing if it is a new minimum
+			if (currentPrecision < currentMinPrec)
+			{
+// Clearing standard output after each iteration, cross-platform solution
+#ifdef _WIN32
+			system("cls");
+#else
+			system("clear");
+#endif
+				currentMinPrec = currentPrecision;
+				std::cout << "\n\nCurrent precision: " << this->getCurrentPrecision() << "\n\n";	
+			}
 		}
 
 		// Free allocated memory
@@ -874,16 +891,6 @@ public:
 
 		// prec = 1/n * sqrt(SUM(framePrec^2))
 		prec /= inFrame.size();
-
-		// Printing last iteration
-		std::cout << "\n";
-		for (unsigned i = 0; i < sizeOut; i++)
-			std::cout << " |E" << i << ": " << std::fixed << std::setprecision(5) << (double)expOut[expOut.size() - 1][i];
-
-		std::cout << "\n";
-		for (unsigned i = 0; i < sizeOut; i++)
-			std::cout << " |A" << i << ": " << std::fixed << std::setprecision(5) << layers[layers.size() - 1].getThisLayer()[i].getActivation();
-
 		this->setCurrentPrecision(prec);
 	}
 
