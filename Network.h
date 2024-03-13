@@ -26,6 +26,8 @@ using std::string;
 
 const double beta1PowerStarter = 0.9f;		// Starter values to beta1power and beta2power's for adam optimization
 const double beta2PowerStarter = 0.999f;
+const double learningRateDefault = 0.01f;
+const double dropoutRateDefault = 1.0f;
 
 class Network
 {
@@ -69,10 +71,18 @@ public:
 		useRmspropOptimization(false), useAdagradOptimization(false), useAdadeltaOptimization(false),
 		useNagOptimization(false), useAdamaxOptimization(false), useAdamOptimization(false),
 		useL1(false), useL2(false), useDropout(false), dropoutRate(0.5f), useWe(false), useXavier(false), 
-		desiredPrecision(0.002f), currentPrecision(1.0f), epoch(0)
+		desiredPrecision(0.04f), currentPrecision(1.0f), epoch(0)
 	{
 		beta1Power = beta1PowerStarter;
 		beta2Power = beta2PowerStarter;
+	}
+	Network(vector<Edge**> edges, vector<Layer> layers) : layers(layers), edges(edges), gen(std::random_device{}()), dis(-1.0, 1.0),
+		useRmspropOptimization(false), useAdagradOptimization(false), useAdadeltaOptimization(false),
+		useNagOptimization(false), useAdamaxOptimization(false), useAdamOptimization(false),
+		useL1(false), useL2(false), useDropout(false), dropoutRate(0.5f), useWe(false), useXavier(false),
+		desiredPrecision(0.04f), currentPrecision(1.0f), epoch(0)
+	{
+
 	}
 
 	/**
@@ -90,13 +100,17 @@ public:
 	template<typename T1, typename T2>
 	Network(vector<unsigned> numNeurons, const string& opt, const string& reg, const string& initer, 
 		const vector<vector<T1>> inDataSet, const vector<vector<T2>> expDataSet,
-		double desiredPrec = 0.002f, double dpr = 0.5f) :
+		double desiredPrec = 0.04f, double dpr = dropoutRateDefault) :
 		gen(std::random_device{}()), dis(-1.0, 1.0),
 		useRmspropOptimization(false), useAdagradOptimization(false), useAdadeltaOptimization(false),
 		useNagOptimization(false), useAdamaxOptimization(false), useAdamOptimization(false),
 		useL1(false), useL2(false), useDropout(false), dropoutRate(dpr), useWe(false), useXavier(false), 
 		desiredPrecision(desiredPrec), currentPrecision(1.0f), epoch(0)
 	{
+		// Checking if user want touse dropout
+		if (dropoutRate != dropoutRateDefault)
+			useDropout = true;
+
 		// Setting beta 1 power and beta 2 power starter values for adam and adamax optimizations
 		beta1Power = beta1PowerStarter;
 		beta2Power = beta2PowerStarter;
@@ -275,6 +289,9 @@ public:
 	double getCurrentPrecision() const { return currentPrecision; }
 	double getDesiredPrecision() const { return desiredPrecision; }
 
+	// Operator overload for adding two networks together
+	Network operator+(const Network& rhs) const;
+
 private:
 	// Searches for the max number of datas in whole dataset
 	template<typename T>
@@ -348,7 +365,7 @@ private:
 
 		// Normalize the data
 		for (unsigned i = 0; i < num; i++)
-			retArr[i] = (double)((arr[i] - dMin) / (dMax - dMin));
+			retArr[i] = (double)(arr[i])/* - dMin) / (dMax - dMin))*/;
 	}
 
 	// Normalizing functions, TESTED: OK
@@ -360,6 +377,9 @@ private:
 	double* normalizeExpected(T* arr, unsigned num) { return normalizeData(arr, num); }
 
 	// Feedforward process on network, TESTED: OK
+	// First performs optional data transformation with normalization
+	// Then setting first layers activation as the input, then propagate
+	// forward with the activations, for each layer
 	// Each activation is calculated in this form:
 	// a^(L)j = ActFun((SUM(a^(L-1)k*Wjk) + B^(L)j)
 	template<typename T>
@@ -408,10 +428,9 @@ private:
 			// Iterationg through each neuron in the right layer
 			for (int j = 0; j < sizeRight; j++)
 			{
-
 				double z = 0.0f;
-				// Iterating through each neuron in left layer
 #pragma omp parallel for reduction(+:z)
+				// Iterating through each neuron in left layer
 				for (int k = 0; k < sizeLeft; k++)
 				{
 					// calc    =        left activation       *       edge between         
@@ -488,18 +507,18 @@ private:
 	void calculateDeltaWeight();
 
 	// Setting newly calulated parameters to the network, TESTED: OK
-	void setNewParameters();
+	void setNewParameters(const double learningRate = learningRateDefault);
 
 	/***************************************/
 	/******* Optimization functions ********/
 	/***************************************/
 
-	void rmspropOptimization(double learningRate = 0.001f, double decayRate = 0.9f, double epsilon = 1e-8f);
-	void adagradOptimization(double learningRate = 0.01f, double epsilon = 1e-8f);
+	void rmspropOptimization(double learningRate = learningRateDefault, double decayRate = 0.9f, double epsilon = 1e-8f);
+	void adagradOptimization(double learningRate = learningRateDefault, double epsilon = 1e-8f);
 	void adadeltaOptimization(double decayRate = 0.9f, double epsilon = 1e-8f);
-	void nagOptimization(double learningRate = 0.001f, double momentum = 0.9f);
-	void adamaxOptimization(double learningRate = 0.0005f, double beta1 = 0.9f, double beta2 = 0.999f, double epsilon = 1e-8f);
-	void adamOptimization(double learningRate = 0.0005f, double beta1 = 0.9f, double beta2 = 0.999f, double epsilon = 1e-8f);
+	void nagOptimization(double learningRate = learningRateDefault, double momentum = 0.9f);
+	void adamaxOptimization(double learningRate = learningRateDefault, double beta1 = 0.9f, double beta2 = 0.999f, double epsilon = 1e-8f);
+	void adamOptimization(double learningRate = learningRateDefault, double beta1 = 0.9f, double beta2 = 0.999f, double epsilon = 1e-8f);
 
 	// If there is a selected optimization method, then using it
 	// @return true if optimization is applied false if not
@@ -532,14 +551,14 @@ private:
 	/***************************************/
 	/****** Regularization functions *******/
 	/***************************************/
-	void updateWeightsL1(double learningRate = 0.001f, double lambda = 0.001f);
-	void updateWeightsL2(double learningRate = 0.001f, double lambda = 0.001f);
+	void updateWeightsL1(double learningRate = learningRateDefault, double lambda = 0.001f);
+	void updateWeightsL2(double learningRate = learningRateDefault, double lambda = 0.001f);
 
-	void updateNeuronsL1(double learningRate = 0.001f, double lambda = 0.001f);
-	void updateNeuronsL2(double learningRate = 0.001f, double lambda = 0.001f);
+	void updateNeuronsL1(double learningRate = learningRateDefault, double lambda = 0.001f);
+	void updateNeuronsL2(double learningRate = learningRateDefault, double lambda = 0.001f);
 
-	void applyL1Regularization(double learningRate = 0.001f, double lambda = 0.001f) { updateWeightsL1(learningRate, lambda); updateNeuronsL1(learningRate, lambda); }
-	void applyL2Regularization(double learningRate = 0.001f, double lambda = 0.001f) { updateWeightsL2(learningRate, lambda); updateNeuronsL2(learningRate, lambda); }
+	void applyL1Regularization(double learningRate = learningRateDefault, double lambda = 0.001f) { updateWeightsL1(learningRate, lambda); updateNeuronsL1(learningRate, lambda); }
+	void applyL2Regularization(double learningRate = learningRateDefault, double lambda = 0.001f) { updateWeightsL2(learningRate, lambda); updateNeuronsL2(learningRate, lambda); }
 
 	void applyDropoutRegularization();
 
@@ -565,7 +584,7 @@ private:
 	// The implementation is highly based on 3Blue1Brown: Backpropagation video and article
 	// And also on this arcticle: http://neuralnetworksanddeeplearning.com/chap2.html
 	template <typename T1, typename T2>
-	void backPropagation(T1* inputArr, unsigned inNum, T2* expectedArr, unsigned expNum)
+	void backPropagation(T1* inputArr, unsigned inNum, T2* expectedArr, unsigned expNum, const double learningRate = learningRateDefault)
 	{
 		// Feedforward process
 		feedForwardNetwork(inputArr, inNum);
@@ -580,22 +599,19 @@ private:
 		// Calculating delta activations
 		calculateDeltaActivation();
 
-		// Parallelize delta bias calculation
 #pragma omp parallel
 		{
+			// Parallelize delta bias calculation
 			calculateDeltaBias();
-		}
 
-		// Parallelize delta weight calculation
-#pragma omp parallel
-		{
+			// Parallelize delta weight calculation
 			calculateDeltaWeight();
 		}
 
 		// Setting new parameters to the network
 		// Applying optimization and regularization
 		// technique is inside of this function
-		setNewParameters();
+		setNewParameters(learningRate);
 
 		epoch++;
 	}
@@ -821,16 +837,19 @@ private:
 	template <typename T1, typename T2>
 	double calculateFrameMSE(T1* inFrame, unsigned sizeIn, T2* expOut, unsigned sizeOut)
 	{
-		double error = 0.0;
-
 		// Feedforward the input
 		feedForwardNetwork(inFrame, sizeIn);
 
 		// Calculate MSE for the frame
 		Neuron* lastLayer = layers.back().getThisLayer();
-		for (unsigned i = 0; i < sizeOut; i++) 
+
+		double error = 0.0f;
+		double diff = 0.0f;
+
+#pragma omp parallel for reduction(+:error)
+		for (int i = 0; i < sizeOut; i++) 
 		{
-			double diff = lastLayer[i].getActivation() - static_cast<double>(expOut[i]);
+			diff = lastLayer[i].getActivation() - static_cast<double>(expOut[i]);
 			error += diff * diff;
 		}
 
@@ -839,7 +858,6 @@ private:
 
 		return error;
 	}
-
 
 public:
 	template <typename T1, typename T2>
@@ -854,7 +872,7 @@ public:
 		for (int i = 0; i < numFrames; i++)
 			prec += calculateFrameMSE(inFrame[i], sizeIn, expOut[i], sizeOut);
 
-		// Divide precision for averaging
+		// prec = 1/n * sqrt(SUM(framePrec^2))
 		prec /= inFrame.size();
 
 		// Printing last iteration

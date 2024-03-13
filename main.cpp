@@ -91,15 +91,17 @@ int main()
 		// First define the number of neurons in each layer
 		// each layer should have a numerical value greater then 0
 		// Do NOT change INPUT_LAYER_SIZE and OUTPUT_LAYER SIZE or it's position
-		vector<unsigned> hiddenLayerSizes = { INPUT_LAYER_SIZE, 10, 10, OUTPUT_LAYER_SIZE };
+		vector<unsigned> hiddenLayerSizes = { INPUT_LAYER_SIZE, OUTPUT_LAYER_SIZE };
 
 		// Create network object, with the specified optimization and regularization and initialization techniques
-		Network network(hiddenLayerSizes,	// Hidden layer sizes
-						"adam",				// Optimization technique
-						"L1",				// Regularization technique
-						"Xavier",			// Initialization technique
-						inputArr,			// Vector of input frames
-						expArr				// Vector of expected output frames
+		Network network(hiddenLayerSizes,	// Hidden layer sizes: 	this vector should be organized like this: [INPUT_LAYER_SIZE, HL1, HL2, ... , HLn, OUTPUT_LAYER_SIZE], so you can change HLi = Number of neurons in i-th hidden layer
+						"adam",				// Optimization technique	[adam, adamax, adagrad, adadelta, nag, rms]
+						"none",				// Regularization technique [L1, L2]
+						"Xavier",			// Initialization technique [We, Xavier, Random]
+						inputArr,			// Vector of input frames	[Your input frames collected to a numerical vector], TIP: inputConverter("file_paht") will process your dataset of several files
+						expArr,				// Vector of expected output frames	[Your expected frames collected to a numerical vector], TIP: inputConverter("file_paht") will process your dataset of several files
+						0.03f,				// Desired precision 0.05: 5 [%] error rate after training
+						0.2f				// Dropout rate: On average 100 - 20 = 80% of neurons will fire on a random selection
 		);
 
 		// You can randinit all edges and biases, in the network, although it is not
@@ -112,7 +114,7 @@ int main()
 		vector<string> activationFunctions = { "Relu", "Sigmoid", "Sigmoid" };
 
 		// You can set all the network to 1 specific activation function
-		network.setAllActivationFunctions("Relu");
+		network.setAllActivationFunctions("Sigmoid");
 
 		// Or by passing the vector as an argument, you can set different
 		// activation functions to different layers
@@ -121,7 +123,7 @@ int main()
 		//-----------------------------------//
 
 		// Training network, with the provided data
-		network.trainNetwork("GD", inputArr, expArr, 10);
+		network.trainNetwork("GD", inputArr, expArr, 5);
 
 		//-----------------------------------//
 

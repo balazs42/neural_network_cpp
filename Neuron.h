@@ -48,8 +48,8 @@ private:
 public:
 	Neuron() : activation(0.0f), bias(0.0f), error(0.0f), z(0.0f), activationFunction(&Sigmoid),
 		derivativeActivationFunction(&DSigmoid), deltaActivation(0.0f), deltaBias(0.0f), 
-		firstMoment(1.0f), secondMoment(1.0f),
-		squaredGradientAvg(1.0f), squaredGradientSum(1.0f)
+		firstMoment(1.0f), secondMoment(1.0f), 
+		squaredGradientAvg(1.0f), squaredGradientSum(1.0f), deltaBiasAvg(1.0f)
 	{}
 
 	// Override for operator=
@@ -97,6 +97,21 @@ public:
 	double getDeltaBiasAvg() const { return deltaBiasAvg; }
 	functionPtr getActivationFunction() const { return activationFunction; }
 	functionPtr getDerivativeActivationFunction() const { return derivativeActivationFunction; }
+
+	string getActivationFunctionString() const {
+		if (activationFunction == &Sigmoid)
+			return "Sigmoid";
+		else if (activationFunction == &Relu)
+			return "Relu";
+		else if (activationFunction == &Tanh)
+			return "Tanh";
+		else if (activationFunction == &LeakyRelu)
+			return "LeakyRelu";
+		else if (activationFunction == &ELU)
+			return "Elu";
+		else if (activationFunction == &Swish)
+			return "Swish";
+	}
 
 	// Setter functions
 	void setActivation(double parameter) { activation = parameter; }

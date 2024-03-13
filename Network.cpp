@@ -1,5 +1,70 @@
 #include "Network.h"
 
+// Operator overload for network addition
+// This will create a new instance of neural network, where
+// if output-input sizes are the same they will be linked directly
+// if not then a new layer of egdes will be inserted
+// @rhs Right hand side network
+// @return The new concated network
+Network Network::operator+(const Network& rhs) const 
+{
+    // Check if the last layer of LHS and the first layer of RHS have the same number of neurons
+    const size_t lhsNeuronCount = this->getLayers().back().getNumberOfNeurons();
+    const size_t rhsNeuronCount = rhs.getLayers().front().getNumberOfNeurons();
+
+    vector<unsigned> layerSizes;
+    vector<string> actFunctions;
+
+    // Iterating through left layer's neuron array sizes
+    for (unsigned i = 0; i < this->getLayers().size(); i++)
+    {
+        layerSizes.push_back(this->getLayers()[i].getNumberOfNeurons());
+        actFunctions.push_back(this->getLayers()[i].getThisLayer()[0].getActivationFunctionString());
+    }
+
+    // Iterating through right layer's neuron array sizes
+    for (unsigned i = 0; i < rhs.getLayers().size(); i++)
+    {
+        layerSizes.push_back(rhs.getLayers()[i].getNumberOfNeurons());
+        actFunctions.push_back(rhs.getLayers()[i].getThisLayer()[0].getActivationFunctionString());
+    }
+
+     vector<Edge**> newEdges;
+     // Copiing left hand's edges
+     for (unsigned i = 0; i < this->getEdges().size(); i++)
+          newEdges.push_back(this->getEdges()[i]);
+    
+     // Checking if new edges should be inserted
+     if (lhsNeuronCount == rhsNeuronCount)
+     {
+         Edge** wiringEdges = new Edge*[lhsNeuronCount];
+         for (unsigned j = 0; j < lhsNeuronCount; j++)
+             wiringEdges[j] = new Edge[rhsNeuronCount];
+     }
+
+     // Copiing right hand side's edges
+     for (unsigned i = 0; i < rhs.getEdges().size(); i++)
+         newEdges.push_back(rhs.getEdges()[i]);
+
+     vector<Layer> newLayers;
+
+     // Copiing layers of left hand side
+     for (unsigned i = 0; i < this->getLayers().size(); i++)
+         newLayers.push_back(this->getLayers()[i]);
+
+     // Copiing layers of right hand side
+     for (unsigned i = 0; i < rhs.getLayers().size(); i++)
+         newLayers.push_back(rhs.getLayers()[i]);
+
+     // Creating return instance
+     Network newNetwork(newEdges, newLayers);
+
+     // Setting activation functions
+     newNetwork.setLayerActivationFunctions(actFunctions);
+
+    return newNetwork;
+}
+
 /***************************************/
 /******* Initializing functions ********/
 /***************************************/
@@ -54,6 +119,7 @@ void Network::initializeWeightsHe()
     double std = sqrt(2.0f / layers[0].getNumberOfNeurons()); // for He initialization
     std::normal_distribution<> dis(0, std);
 
+#pragma omp parallel for collapse(3) schedule(dynamic)
     for (int i = 0; i < layers.size() - 1; i++)
     {
         Neuron* leftLayer = layers[i].getThisLayer();
@@ -65,8 +131,7 @@ void Network::initializeWeightsHe()
         // Iterating through each edge, to set weights
         for (int j = 0; j < leftSize; j++)
             for (int k = 0; k < rightSize; k++)
-                edges[i][j][k].setWeight(dis(gen));
-        
+                edges[i][j][k].setWeight(dis(gen));   
     }
 }
 
@@ -82,6 +147,7 @@ void Network::initializeWeightsXavier()
     double std = sqrt(2.0f / (layers[0].getNumberOfNeurons() + layers[1].getNumberOfNeurons())); // for Xavier
     std::normal_distribution<> dis(0, std);
 
+#pragma omp parallel for collapse(3) schedule(dynamic)
     for (int i = 0; i < layers.size() - 1; i++)
     {
         Neuron* leftLayer = layers[i].getThisLayer();
@@ -222,11 +288,11 @@ void Network::calculateDeltaActivation()
         unsigned leftSize = layers[i].getNumberOfNeurons();
 
         // Iteratin through left layers neurons
+#pragma omp parallel for collapse(2) reduction(+:error)
         for (int j = 0; j < leftSize; j++)
         {
             error = 0.0f;
             // Iterating through right layer's neurons
-#pragma omp parallel for reduction(+:error)
             for (int k = 0; k < rightSize; k++)
             {
                 // Error = edge between right and left layer's neurons * righ layer's neuron's error
@@ -246,14 +312,15 @@ void Network::calculateDeltaActivation()
  */
 void Network::calculateDeltaBias()
 {
-    for (unsigned i = 0; i < layers.size(); i++)
+#pragma omp parallel for collapse(2) schedule(dynamic)
+    for (int i = 0; i < layers.size(); i++)
     {
         // Current layer's neuron array
         Neuron* thisLayer = layers[i].getThisLayer();
+        unsigned thisSize = layers[i].getNumberOfNeurons();
 
         // Parallelize delta bias calculation for each neuron in the current layer
-#pragma omp parallel for
-        for (int j = 0; j < layers[i].getNumberOfNeurons(); j++)
+        for (int j = 0; j < thisSize; j++)
         {
             // deltaBias     = error in current neuron * d/dActFun(z)
             //double deltaBias = thisLayer[j].getError() * thisLayer[j].activateDerivative(thisLayer[j].getZ());
@@ -271,7 +338,8 @@ void Network::calculateDeltaWeight()
 {
     double learningRate = 0.01f;
 
-    for (unsigned i = 0; i < edges.size(); i++)
+#pragma parallel for collapse(3) schdeule(dynamic)
+    for (int i = 0; i < edges.size(); i++)
     {
         // Number of neurons in the left layer, and left layer's neuron array
         unsigned leftSize = layers[i].getNumberOfNeurons();
@@ -281,7 +349,6 @@ void Network::calculateDeltaWeight()
         unsigned rightSize = layers[i + 1].getNumberOfNeurons();
         Neuron* rightLayer = layers[i + 1].getThisLayer();
 
-#pragma parallel for collapse(2)
         for (int j = 0; j < leftSize; j++)
         {
             for (int k = 0; k < rightSize; k++)
@@ -301,7 +368,7 @@ void Network::calculateDeltaWeight()
  * This function updates the network's parameters with the new values computed
  * during backpropagation to gradually reduce error.
  */
-void Network::setNewParameters()
+void Network::setNewParameters(const double learningRate)
 {
     // If certain regularization technique is selected, then 
     // updating weights with respect to the regularization
@@ -316,11 +383,11 @@ void Network::setNewParameters()
     else
     {
         // Setting new biases for each neuron in each layer
+#pragma omp parallel for collapse(2) schedule(dynamic)
         for (int i = 0; i < layers.size(); i++)
         {
             Neuron* thisLayer = layers[i].getThisLayer();
             unsigned layerSize = layers[i].getNumberOfNeurons();
-#pragma omp parallel for 
             for (int j = 0; j < layerSize; j++)
             {
                 // New bias =       old bias     -  calculated delta bias
@@ -494,12 +561,12 @@ void Network::rmspropOptimization(double learningRate, double decayRate, double 
     // Updating biases
 
     // Iterate over each layer and neuron
-    for (unsigned i = 1; i < layers.size(); i++) 
+#pragma omp parallel for collapse(2)
+    for (int i = 1; i < layers.size(); i++) 
     {
         Neuron* thisLayer = layers[i].getThisLayer();
         unsigned layerSize = layers[i].getNumberOfNeurons();
 
-#pragma omp parallel for
         for (int j = 0; j < layerSize; j++) 
         {
             // Compute gradients and update moving average of squared gradients
@@ -553,12 +620,12 @@ void Network::adagradOptimization(double learningRate, double epsilon)
     // Updating biases
    
     // Iterate over each layer and neuron
-    for (unsigned i = 1; i < layers.size(); i++) 
+#pragma omp parallel for collapse(2) schedule (dynamic)
+    for (int i = 1; i < layers.size(); i++) 
     {
         Neuron* thisLayer = layers[i].getThisLayer();
         unsigned layerSize = layers[i].getNumberOfNeurons();
 
-#pragma omp parallel for
         for (int j = 0; j < layerSize; j++) 
         {
             // Compute the gradient for the neuron's bias
@@ -623,11 +690,11 @@ void Network::adadeltaOptimization(double decayRate, double epsilon)
     // E[Delta x^2]_t = decayRate * E[Delta x^2]_{t-1} + (1 - decayRate) * (Delta x_t)^2
 
     // Update biases
-    for (int i = 0; i < layers.size(); ++i) 
+#pragma omp parallel for collapse(2) schedule(dynamic)
+    for (int i = 0; i < layers.size(); i++) 
     {
         Neuron* thisLayer = layers[i].getThisLayer();
-#pragma omp parallel for
-        for (int j = 0; j < layers[i].getNumberOfNeurons(); ++j) 
+        for (int j = 0; j < layers[i].getNumberOfNeurons(); j++) 
         {
             Neuron& neuron = thisLayer[j];
 
@@ -708,13 +775,13 @@ void Network::nagOptimization(double learningRate, double momentum)
     // theta_t+1 = theta_t + momentum * v_t - learningRate * g_{t+1}
 
     // Iterate over each layer and neuron
+#pragma omp parallel for collapse(2) schedule(dynamic)
     for (int i = 1; i < layers.size(); i++) 
     {
         Neuron* thisLayer = layers[i].getThisLayer();
         unsigned layerSize = layers[i].getNumberOfNeurons();
 
         // NAG update rule for each neuron's bias
-#pragma omp parallel for
         for (int j = 0; j < layerSize; j++) 
         {
             // Compute the look-ahead gradient
@@ -760,13 +827,13 @@ void Network::adamaxOptimization(double learningRate, double beta1, double beta2
     // Setting biases
 
     // Iterate over each layer and neuron
+#pragma omp parallel for collapse(2) schedule(dynamic)
     for (int i = 1; i < layers.size(); i++)
     {
         Neuron* thisLayer = layers[i].getThisLayer();
         unsigned layerSize = layers[i].getNumberOfNeurons();
 
         // Adamax update rule for each neuron's bias
-#pragma omp parallel for
         for (int j = 0; j < layerSize; j++)
         {
             // Update first moment (mean) similar to Adam
@@ -792,11 +859,11 @@ void Network::adamaxOptimization(double learningRate, double beta1, double beta2
     // Setting weights
 
 #pragma omp parallel for collapse(3) schedule(dynamic)
-    for (int i = 0; i < edges.size(); ++i) 
+    for (int i = 0; i < edges.size(); i++) 
     {
-        for (int j = 0; j < layers[i].getNumberOfNeurons(); ++j) 
+        for (int j = 0; j < layers[i].getNumberOfNeurons(); j++) 
         {
-            for (int k = 0; k < layers[i + 1].getNumberOfNeurons(); ++k) 
+            for (int k = 0; k < layers[i + 1].getNumberOfNeurons(); k++) 
             {
                 Edge& edge = edges[i][j][k];
 
@@ -897,11 +964,11 @@ void Network::updateWeightsL2(double learningRate, double lambda)
 void Network::updateNeuronsL1(double learningRate, double lambda)
 {
     // Iterate over each layer and each neuron
+#pragma omp parallel for collapse(2) schedule(dynamic)
     for (int i = 0; i < layers.size(); i++)
     {
         Neuron* neurons = layers[i].getThisLayer();
         unsigned numNeurons = layers[i].getNumberOfNeurons();
-#pragma omp parallel for
         for (int j = 0; j < numNeurons; j++)
         {
             // Update bias with L1
@@ -922,11 +989,11 @@ void Network::updateNeuronsL1(double learningRate, double lambda)
 void Network::updateNeuronsL2(double learningRate, double lambda)
 {
     // Iterate over each layer and each neuron
+#pragma omp parallel for collapse(2) schedule(dynamic)
     for (int i = 0; i < layers.size(); i++)
     {
         Neuron* neurons = layers[i].getThisLayer();
         unsigned numNeurons = layers[i].getNumberOfNeurons();
-#pragma omp parallel for
         for (int j = 0; j < numNeurons; j++)
         {
             // Update bias with L2
@@ -946,20 +1013,20 @@ void Network::applyDropoutRegularization()
     std::uniform_real_distribution<> dropoutDistribution(0.0, 1.0);
 
     // Apply dropout to each hidden layer (not the input or output layers)
-    for (size_t layerIndex = 1; layerIndex < layers.size() - 1; ++layerIndex) 
+    #pragma omp parallel for collapse(2) schedule(dynamic)
+    for (int i = 1; i < layers.size() - 1; i++) 
     {
         // Retrieve the current layer
-        Neuron* neurons = layers[layerIndex].getThisLayer();
-        unsigned numNeurons = layers[layerIndex].getNumberOfNeurons();
+        Neuron* neurons = layers[i].getThisLayer();
+        unsigned numNeurons = layers[i].getNumberOfNeurons();
 
-        #pragma omp parallel for
-        for (int neuronIndex = 0; neuronIndex < numNeurons; ++neuronIndex) 
+        for (int j = 0; j < numNeurons; j++) 
         {
             double dropoutDecision = dropoutDistribution(gen);
             if (dropoutDecision < dropoutRate) 
             {
                 // Dropout this neuron by setting its activation to zero
-                neurons[neuronIndex].setActivation(0.0);
+                neurons[j].setActivation(0.0);
             }
         }
     }

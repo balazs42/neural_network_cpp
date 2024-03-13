@@ -26,7 +26,7 @@ private:
 	double uNorm;
 
 public:
-	Edge() : weight(0.0f), error(0.0f), deltaWeight(1.0f), deltaWeightAvg(1.0f), squaredGradientAvg(1.0f), squaredGradientSum(1.0f), firstMoment(1.0f), secondMoment(1.0f), uNorm(1.0f) {}
+	Edge() : weight(1.0f), error(0.0f), deltaWeight(0.0f), deltaWeightAvg(1.0f), squaredGradientAvg(1.0f), squaredGradientSum(1.0f), firstMoment(1.0f), secondMoment(1.0f), uNorm(1.0f) {}
 
 	// Getter functions
 	double getWeight() const { return weight; }
