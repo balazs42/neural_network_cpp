@@ -58,6 +58,8 @@ private:
 	double desiredPrecision;	// Precision that user wants to achieve
 	double currentPrecision;	// Currently obtained precision by the network
 
+	unsigned epoch;
+
 	// Random number generation using the modern <random> library
 	std::mt19937 gen; // Standard mersenne_twister_engine seeded with time()
 	std::uniform_real_distribution<> dis; // Uniform distribution between -1.0 and 1.0
@@ -67,7 +69,7 @@ public:
 		useRmspropOptimization(false), useAdagradOptimization(false), useAdadeltaOptimization(false),
 		useNagOptimization(false), useAdamaxOptimization(false), useAdamOptimization(false),
 		useL1(false), useL2(false), useDropout(false), dropoutRate(0.5f), useWe(false), useXavier(false), 
-		desiredPrecision(0.002f), currentPrecision(1.0f)
+		desiredPrecision(0.002f), currentPrecision(1.0f), epoch(0)
 	{
 		beta1Power = beta1PowerStarter;
 		beta2Power = beta2PowerStarter;
@@ -93,7 +95,7 @@ public:
 		useRmspropOptimization(false), useAdagradOptimization(false), useAdadeltaOptimization(false),
 		useNagOptimization(false), useAdamaxOptimization(false), useAdamOptimization(false),
 		useL1(false), useL2(false), useDropout(false), dropoutRate(dpr), useWe(false), useXavier(false), 
-		desiredPrecision(desiredPrec), currentPrecision(1.0f)
+		desiredPrecision(desiredPrec), currentPrecision(1.0f), epoch(0)
 	{
 		// Setting beta 1 power and beta 2 power starter values for adam and adamax optimizations
 		beta1Power = beta1PowerStarter;
@@ -503,10 +505,10 @@ private:
 	// @return true if optimization is applied false if not
 	bool useOptimization() 
 	{
-		// Using the given optimization techniwue
-		if (useRmspropOptimization)
+		// Adam, adagrad will update both weigths and biases
+		if (useAdamOptimization)
 		{
-			rmspropOptimization();
+			adamOptimization();
 			return true;
 		}
 		else if (useAdagradOptimization)
@@ -514,27 +516,16 @@ private:
 			adagradOptimization();
 			return true;
 		}
+		else if (useRmspropOptimization)
+		{
+			rmspropOptimization();
+			return true;
+		}
 		else if (useAdadeltaOptimization)
 		{
 			adadeltaOptimization();
 			return true;
 		}
-		else if (useNagOptimization)
-		{
-			nagOptimization();
-			return true;
-		}
-		else if (useAdamaxOptimization)
-		{
-			adamaxOptimization();
-			return true;
-		}
-		else if (useAdamOptimization)
-		{
-			adamOptimization();
-			return true;
-		}
-
 		return false;
 	}
 
@@ -605,6 +596,8 @@ private:
 		// Applying optimization and regularization
 		// technique is inside of this function
 		setNewParameters();
+
+		epoch++;
 	}
 
 	// Stochastic gradient descent function
@@ -810,7 +803,7 @@ public:
 			}
 
 			// Calculating precision of network
-			calculatePrecision(convertedInArr, inArr[0].size(), convertedExpArr, expArr[0].size());
+			calculateMSE(convertedInArr, inArr[0].size(), convertedExpArr, expArr[0].size());
 			std::cout << "\n\nCurrent precision: " << this->getCurrentPrecision() << "\n\n";
 		}
 
@@ -826,35 +819,31 @@ public:
 private:
 	// Calculates the precision
 	template <typename T1, typename T2>
-	double calculateFramePrecision(T1* inFrame, unsigned sizeIn, T2* expOut, unsigned sizeOut)
+	double calculateFrameMSE(T1* inFrame, unsigned sizeIn, T2* expOut, unsigned sizeOut)
 	{
-		double error = 0.0f;
+		double error = 0.0;
 
 		// Feedforward the input
 		feedForwardNetwork(inFrame, sizeIn);
 
-		// Calculate error for the frame
-		Neuron* lastLayer = layers[layers.size() - 1].getThisLayer();
-		unsigned layerSize = layers[layers.size() - 1].getNumberOfNeurons();
-
-//#pragma omp parallel for reduction(+:error)
-		for (int i = 0; i < layerSize; i++)
+		// Calculate MSE for the frame
+		Neuron* lastLayer = layers.back().getThisLayer();
+		for (unsigned i = 0; i < sizeOut; i++) 
 		{
-			double squaredAct = pow(lastLayer[i].getActivation(), 2);
-			double squaredExp = pow((double)expOut[i], 2);
-			double pr = abs(squaredAct - squaredExp);
-			error += sqrt(pr);
+			double diff = lastLayer[i].getActivation() - static_cast<double>(expOut[i]);
+			error += diff * diff;
 		}
 
-		// Divide error for averaging
-		error /= layerSize;
+		// Average the error by the number of output neurons
+		error /= sizeOut;
 
 		return error;
 	}
 
+
 public:
 	template <typename T1, typename T2>
-	void calculatePrecision(vector<T1*> inFrame, unsigned sizeIn, vector<T2*> expOut, unsigned sizeOut)
+	void calculateMSE(vector<T1*> inFrame, unsigned sizeIn, vector<T2*> expOut, unsigned sizeOut)
 	{
 		double prec = 0.0f;
 
@@ -863,7 +852,7 @@ public:
 		// Calculating precision for all frames
 #pragma omp parallel for reduction(+:prec)
 		for (int i = 0; i < numFrames; i++)
-			prec += calculateFramePrecision(inFrame[i], sizeIn, expOut[i], sizeOut);
+			prec += calculateFrameMSE(inFrame[i], sizeIn, expOut[i], sizeOut);
 
 		// Divide precision for averaging
 		prec /= inFrame.size();

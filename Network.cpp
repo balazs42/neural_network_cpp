@@ -269,6 +269,8 @@ void Network::calculateDeltaBias()
  */
 void Network::calculateDeltaWeight()
 {
+    double learningRate = 0.01f;
+
     for (unsigned i = 0; i < edges.size(); i++)
     {
         // Number of neurons in the left layer, and left layer's neuron array
@@ -286,7 +288,7 @@ void Network::calculateDeltaWeight()
             {
                 // DeltaWeight =  left activation      *                      d/dActFun(z)                      *   right neuron error      
                 //double dWeight = leftLayer[j].getActivation() * rightLayer[k].activateDerivative(rightLayer[j].getZ()) * rightLayer[k].getError();
-                double dWeight = leftLayer[j].getActivation() * rightLayer[k].getError();
+                double dWeight = learningRate * leftLayer[j].getActivation() * rightLayer[k].getError();
                 // Setting delta weight
                 edges[i][j][k].setDeltaWeight(dWeight);
             }
@@ -304,13 +306,33 @@ void Network::setNewParameters()
     // If certain regularization technique is selected, then 
     // updating weights with respect to the regularization
     // technique
-    if (useRegularization())
-    {
-    }
+    if (useRegularization()) {}
+         
+    // If a certain optimization method is selected, then updating 
+    // biases with the given optimization technique, if none is selected
+    // then applying basic gradient descent calculated baises
+    if (useOptimization())
+        return;
     else
     {
+        // Setting new biases for each neuron in each layer
+        for (int i = 0; i < layers.size(); i++)
+        {
+            Neuron* thisLayer = layers[i].getThisLayer();
+            unsigned layerSize = layers[i].getNumberOfNeurons();
+#pragma omp parallel for 
+            for (int j = 0; j < layerSize; j++)
+            {
+                // New bias =       old bias     -  calculated delta bias
+                double newBias = thisLayer[j].getBias() - thisLayer[j].getDeltaBias();
+
+                // Setting new bias
+                thisLayer[j].setBias(newBias);
+            }
+        }
+
         // Setting new weights for edges
-    #pragma omp parallel for collapse(3)
+#pragma omp parallel for collapse(3)
         for (int i = 0; i < edges.size(); i++)
         {
             for (int j = 0; j < layers[i].getNumberOfNeurons(); j++)
@@ -319,35 +341,10 @@ void Network::setNewParameters()
                 {
                     // New weight =         old weigth     -      calculated delta weight
                     double newWeight = edges[i][j][k].getWeight() - edges[i][j][k].getDeltaWeight();
-                
+
                     // Setting new weight
                     edges[i][j][k].setWeight(newWeight);
                 }
-            }
-        }
-    }
-    
-    // If a certain optimization method is selected, then updating 
-    // biases with the given optimization technique, if none is selected
-    // then applying basic gradient descent calculated baises
-    if (useOptimization())
-    {
-        // If optimization ran
-    }
-    else
-    {
-        // Setting new biases for each neuron in each layer
-        for (int i = 0; i < layers.size(); i++)
-        {
-            Neuron* thisLayer = layers[i].getThisLayer();
-#pragma omp parallel for 
-            for (int j = 0; j < layers[i].getNumberOfNeurons(); j++)
-            {
-                // New bias =       old bias     -  calculated delta bias
-                double newBias = thisLayer[j].getBias() - thisLayer[j].getDeltaBias();
-
-                // Setting new bias
-                thisLayer[j].setBias(newBias);
             }
         }
     }
@@ -445,6 +442,34 @@ void Network::adamOptimization(double learningRate, double beta1, double beta2, 
         }
     }
 
+    // Updating weights
+#pragma omp parallel for collapse(3) schedule(dynamic)
+    for (int i = 0; i < edges.size(); i++) 
+    {
+        for (int j = 0; j < layers[i].getNumberOfNeurons(); j++) 
+        {
+            for (int k = 0; k < layers[i + 1].getNumberOfNeurons(); k++) 
+            {
+                Edge& edge = edges[i][j][k];
+                double grad = edge.getDeltaWeight();
+
+                // Update moments
+                double m = beta1 * edge.getFirstMoment() + (1 - beta1) * grad;
+                double v = beta2 * edge.getSecondMoment() + (1 - beta2) * grad * grad;
+                edge.setFirstMoment(m);
+                edge.setSecondMoment(v);
+
+                // Bias correction
+                double mCorrected = m / (1 - beta1Power);
+                double vCorrected = v / (1 - beta2Power);
+
+                // Apply updates
+                double weightUpdate = -learningRate * mCorrected / (sqrt(vCorrected) + epsilon);
+                edge.setWeight(edge.getWeight() + weightUpdate);
+            }
+        }
+    }
+
     // Update power factors for beta1 and beta2 for next iteration
     this->setBeta1Power(this->getBeta1Power() * beta1);
     this->setBeta1Power(this->getBeta1Power() * beta1);
@@ -465,6 +490,8 @@ void Network::rmspropOptimization(double learningRate, double decayRate, double 
     // RMSProp Equation:
     // E[g^2]_t = decayRate * E[g^2]_{t-1} + (1 - decayRate) * g_t^2
     // theta_t+1 = theta_t - learningRate * g_t / (sqrt(E[g^2]_t) + epsilon)
+
+    // Updating biases
 
     // Iterate over each layer and neuron
     for (unsigned i = 1; i < layers.size(); i++) 
@@ -493,6 +520,24 @@ void Network::rmspropOptimization(double learningRate, double decayRate, double 
             thisLayer[j].setBias(updatedBias);
         }
     }
+
+    // Updating edges
+#pragma omp parallel for collapse(3) schedule(dynamic)
+    for (int i = 0; i < edges.size(); i++) 
+    {
+        for (int j = 0; j < layers[i].getNumberOfNeurons(); j++) 
+        {
+            for (int k = 0; k < layers[i + 1].getNumberOfNeurons(); k++) 
+            {
+                Edge& edge = edges[i][j][k];
+                double grad = edge.getDeltaWeight(); 
+                double squaredGradientAvg = decayRate * edge.getSquaredGradientAvg() + (1 - decayRate) * grad * grad;
+                edge.setSquaredGradientAvg(squaredGradientAvg);
+                double weightUpdate = -learningRate * grad / (sqrt(squaredGradientAvg) + epsilon);
+                edge.setWeight(edge.getWeight() + weightUpdate);
+            }
+        }
+    }
 }
 
 /**
@@ -505,6 +550,8 @@ void Network::rmspropOptimization(double learningRate, double decayRate, double 
  */
 void Network::adagradOptimization(double learningRate, double epsilon) 
 {
+    // Updating biases
+   
     // Iterate over each layer and neuron
     for (unsigned i = 1; i < layers.size(); i++) 
     {
@@ -531,6 +578,31 @@ void Network::adagradOptimization(double learningRate, double epsilon)
             thisLayer[j].setBias(updatedBias);
         }
     }
+
+    // Updating weights
+#pragma omp parallel for collapse(3) schedule(dynamic)
+    for (int i = 0; i < edges.size(); i++)
+    {
+        for (int j = 0; j < layers[i].getNumberOfNeurons(); j++)
+        {
+            for (int k = 0; k < layers[i + 1].getNumberOfNeurons(); k++)
+            {
+                Edge& edge = edges[i][j][k];
+                double grad = edge.getDeltaWeight(); // Assuming this stores the gradient for the weight.
+
+                // Update the accumulated squared gradient
+                double accumulatedSquaredGradient = edge.getSquaredGradientSum() + grad * grad;
+                edge.setSquaredGradientSum(accumulatedSquaredGradient);
+
+                // Calculate the adjusted learning rate
+                double adjustedLearningRate = learningRate / (sqrt(accumulatedSquaredGradient) + epsilon);
+
+                // Update the weight
+                double newWeight = edge.getWeight() - adjustedLearningRate * grad;
+                edge.setWeight(newWeight);
+            }
+        }
+    }
 }
 
 /**
@@ -550,7 +622,37 @@ void Network::adadeltaOptimization(double decayRate, double epsilon)
     // theta_t+1 = theta_t + Delta x_t
     // E[Delta x^2]_t = decayRate * E[Delta x^2]_{t-1} + (1 - decayRate) * (Delta x_t)^2
 
+    // Update biases
+    for (int i = 0; i < layers.size(); ++i) 
+    {
+        Neuron* thisLayer = layers[i].getThisLayer();
+#pragma omp parallel for
+        for (int j = 0; j < layers[i].getNumberOfNeurons(); ++j) 
+        {
+            Neuron& neuron = thisLayer[j];
+
+            double gradBias = neuron.getError() * neuron.activateDerivative(neuron.getZ()); 
+            double squaredGrad = gradBias * gradBias;
+
+            // Update running averages
+            neuron.setSquaredGradientAvg(decayRate * neuron.getSquaredGradientAvg() + (1 - decayRate) * squaredGrad);
+
+            double rmsGradBias = sqrt(neuron.getSquaredGradientAvg() + epsilon);
+            double rmsUpdateBias = sqrt(neuron.getDeltaBiasAvg() + epsilon);
+
+            // Compute and apply bias update
+            double updateBias = (rmsUpdateBias / rmsGradBias) * gradBias;
+            neuron.setBias(neuron.getBias() - updateBias);
+
+            // Update deltaBiasAvg
+            neuron.setDeltaBiasAvg(decayRate * neuron.getDeltaBiasAvg() + (1 - decayRate) * updateBias * updateBias);
+        }
+    }
+
+    // Update weights
+    
     // Iterate over each layer
+#pragma omp parallel for collapse(3) schedule(dynamic)
     for (int i = 0; i < layers.size() - 1; i++) // Ensures we have pairs of layers to work with (current and next)
     {
         // Iterate over each neuron in the current layer and its connections to the next layer
@@ -588,6 +690,7 @@ void Network::adadeltaOptimization(double decayRate, double epsilon)
             }
         }
     }
+
 }
 
 /**
@@ -653,7 +756,9 @@ void Network::adamaxOptimization(double learningRate, double beta1, double beta2
     // Adamax Equations are similar to Adam but uses max operation instead of sum for second moment.
     // This makes it suitable for embeddings and sparse data.
     // theta_t+1 = theta_t - learningRate / (1 - beta1^t) * m_t / (max(v_t, epsilon))
-    // 
+    
+    // Setting biases
+
     // Iterate over each layer and neuron
     for (int i = 1; i < layers.size(); i++)
     {
@@ -683,6 +788,34 @@ void Network::adamaxOptimization(double learningRate, double beta1, double beta2
             thisLayer[j].setBias(updatedBias);
         }
     }
+
+    // Setting weights
+
+#pragma omp parallel for collapse(3) schedule(dynamic)
+    for (int i = 0; i < edges.size(); ++i) 
+    {
+        for (int j = 0; j < layers[i].getNumberOfNeurons(); ++j) 
+        {
+            for (int k = 0; k < layers[i + 1].getNumberOfNeurons(); ++k) 
+            {
+                Edge& edge = edges[i][j][k];
+
+                // Update first moment (m) and \(\infty\)-norm (u)
+                double grad = edge.getDeltaWeight();
+                edge.setFirstMoment(beta1 * edge.getFirstMoment() + (1.0 - beta1) * grad);
+                edge.setUNorm(std::max(beta2 * edge.getUNorm(), std::fabs(grad)));
+
+                // Compute bias-corrected first moment estimate
+                double mHat = edge.getFirstMoment() / (1.0 - std::pow(beta1, epoch + 1));
+
+                // Calculate and apply the update
+                double denom = edge.getUNorm() + epsilon;
+                double update = learningRate / denom * mHat;
+                edge.setWeight(edge.getWeight() - update);
+            }
+        }
+    }
+
     // Update beta1Power for the next epoch
     // This should be done once per epoch, so if this function is called multiple times within an epoch,
     // ensure that beta1Power is only updated at the end of the epoch.

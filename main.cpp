@@ -90,15 +90,16 @@ int main()
 
 		// First define the number of neurons in each layer
 		// each layer should have a numerical value greater then 0
-		vector<unsigned> layerSizes = { INPUT_LAYER_SIZE, 5, OUTPUT_LAYER_SIZE };
+		// Do NOT change INPUT_LAYER_SIZE and OUTPUT_LAYER SIZE or it's position
+		vector<unsigned> hiddenLayerSizes = { INPUT_LAYER_SIZE, 20, OUTPUT_LAYER_SIZE };
 
 		// Create network object, with the specified optimization and regularization and initialization techniques
-		Network network(layerSizes,		// Layer hidden sizes
-						"none",			// Optimization technique
-						"none",			// Regularization technique
-						"Xavier",		// Initialization technique
-						inputArr,		// Vector of input frames
-						expArr			// Vector of expected output frames
+		Network network(hiddenLayerSizes,	// Hidden layer sizes
+						"adam",				// Optimization technique
+						"L1",				// Regularization technique
+						"Xavier",			// Initialization technique
+						inputArr,			// Vector of input frames
+						expArr				// Vector of expected output frames
 		);
 
 		// You can randinit all edges and biases, in the network, although it is not

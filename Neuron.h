@@ -37,6 +37,7 @@ private:
 
 	double squaredGradientSum;    // Accumulated squared gradients for Adagrad
 	double squaredGradientAvg;    // Moving average of squared gradients for AdaDelta
+	double deltaBiasAvg;		  // For Adadelta - running average of squared updates for bias
 
 	typedef double (*FunctionPointer)(double);// Function pointer type
 
@@ -93,6 +94,7 @@ public:
 	double getSecondMoment() const { return secondMoment; }
 	double getSquaredGradientSum() const { return squaredGradientSum; }
 	double getSquaredGradientAvg() const { return squaredGradientAvg; }
+	double getDeltaBiasAvg() const { return deltaBiasAvg; }
 	functionPtr getActivationFunction() const { return activationFunction; }
 	functionPtr getDerivativeActivationFunction() const { return derivativeActivationFunction; }
 
@@ -107,6 +109,7 @@ public:
 	void setSecondMoment(double parameter) { secondMoment = parameter; }
 	void setSquaredGradientSum(double parameter) { squaredGradientSum = parameter; }
 	void setSquaredGradientAvg(double parameter) { squaredGradientAvg = parameter; }
+	void setDeltaBiasAvg(double parameter) { deltaBiasAvg = parameter; }
 
 private:
 	// Activation functions
