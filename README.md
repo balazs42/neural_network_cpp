@@ -39,29 +39,14 @@ The implementation is modular, organized into several key components to ensure c
 - string `expectedAnimalsTxt` = "\path\expectedAnimals.txt"; // txt = {"dog,dog,dog,cat,dog..."}
 - vector<vector<float> `inputFrames` = convertInput(animalFolder);
 - vector<vector<float>> `expValues` = convertInput(expectedAnimalsTxt);
-- Other initializations
-- `Network network();` // Initialize with corresponding parameters (SEEN BELOW)
+- vector<unsigned> `layerSizes` = {L1, L2, ..., Ln}; // Define the number of neurons in each layer
+- `Network network(layerSizes, "OptimizationMethod", "RegularizationMethod", "InitializationMethod", inputs, outputs, optionalDesiredPrecision, optionalDropoutRate);` // Initialize with corresponding parameters (SEEN BELOW)
 - `network.trainNetwork(inputFrames, expValues);`
-
+- `unseenInputs` = convertInput(your_path_to_other_inputs);
+- OPTIONAL: `unseenExpecteds` = convertExpecteds(your_path_to_other_expecteds);
+- `network.testNetwork(unseenInputs, unseenExpecteds);`
 #### Basic and Example Usage
 ```cpp
-vector inputs = convertInput(your_path); // Converts the specified data to neural network compatible inputs
-vector expecteds = convertExpecteds(your_path); // Converts specified data to expected outputs
-vector layerSizes = {L1, L2, ..., Ln}; // Define the number of neurons in each layer
-vector activationFunctions = {"Relu", "Sigmoid", ..., "LeakyRelu"}; // Define activation functions for each layer
-
-// Initialize the network with various parameters
-Network network(layerSizes, "OptimizationMethod", "RegularizationMethod", "InitializationMethod", inputs, outputs, optionalDesiredPrecision, optionalDropoutRate);
-
-// Train the network
-network.trainNetwork("TrainingMethod", inputs, outputs, optionalEchoNumber);
-
-// Test the network
-unseenInputs = convertInput(your_path_to_other_inputs);
-OPTIONAL: unseenExpecteds = convertExpecteds(your_path_to_other_expecteds);
-network.testNetwork(unseenInputs, unseenExpecteds);
-```cpp
-
 // This is an example of how you could use this repository
 int main()
 {
