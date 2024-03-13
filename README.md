@@ -36,16 +36,16 @@ The implementation is modular, organized into several key components to ensure c
   
 ### Brief example
 ```cpp
-string `animalFolder` = "\path\animalFolder"; // Animal folder = {dogPic1.jpg, dogPic2.jpg, dogPic3.png, catPic1.jpg, dogPic4.jpg ... }
-string `expectedAnimalsTxt` = "\path\expectedAnimals.txt"; // txt = {"dog,dog,dog,cat,dog..."}
-vector<vector<float> `inputFrames` = convertInput(animalFolder);
-vector<vector<float>> `expValues` = convertInput(expectedAnimalsTxt);
-vector<unsigned> `layerSizes` = {L1, L2, ..., Ln}; // Define the number of neurons in each layer
-`Network network(layerSizes, "OptimizationMethod", "RegularizationMethod", "InitializationMethod", inputs, outputs, optionalDesiredPrecision, optionalDropoutRate);` // Initialize with corresponding parameters (SEEN BELOW)
-`network.trainNetwork(inputFrames, expValues);`
-`unseenInputs` = convertInput(your_path_to_other_inputs);
-OPTIONAL: `unseenExpecteds` = convertExpecteds(your_path_to_other_expecteds);
-`network.testNetwork(unseenInputs, unseenExpecteds);`
+string animalFolder = "\path\animalFolder"; // Animal folder = {dogPic1.jpg, dogPic2.jpg, dogPic3.png, catPic1.jpg, dogPic4.jpg ... }
+string expectedAnimalsTxt = "\path\expectedAnimals.txt"; // txt = {"dog,dog,dog,cat,dog..."}
+vector<vector<float> inputFrames = convertInput(animalFolder);
+vector<vector<float>> expValues = convertInput(expectedAnimalsTxt);
+vector<unsigned> layerSizes = {L1, L2, ..., Ln}; // Define the number of neurons in each layer
+Network network(layerSizes, "OptimizationMethod", "RegularizationMethod", "InitializationMethod", inputs, outputs, optionalDesiredPrecision, optionalDropoutRate); // Initialize with corresponding parameters (SEEN BELOW)
+network.trainNetwork(inputFrames, expValues);
+unseenInputs = convertInput(your_path_to_other_inputs);
+OPTIONAL: unseenExpecteds = convertExpecteds(your_path_to_other_expecteds);
+network.testNetwork(unseenInputs, unseenExpecteds);`
 ```
 #### Basic and Example Usage
 ```cpp
