@@ -194,11 +194,17 @@ vector<T> convertStrings(const vector<string>& inputStrings)
     {
         try
         {
-            auto iterator = dictionary.find(s);
-
-            // If word is found push_back to output vector with casting to the specific type
-            if (iterator != dictionary.end())
-                output.push_back(static_cast<T>(iterator->second));
+            unsigned entryCounter = 0;
+            // Trying to find string
+            for (auto iter : dictionary)
+            {
+                if (iter.first == str)
+                    output.push_back(static_cast<T>(iter->second));
+                else
+                    entryCounter++;
+            }
+            if (entryCounter == dictionary.size())
+                throw std::runtime_error("Word not part of the database, check DB and if unavoidable, modify it, by adding the new word in a new line");
         }
         catch (const std::exception& e)
         {
@@ -279,6 +285,43 @@ std::vector<std::vector<T>> convertTxtFolder(const std::string& folderPath, cons
 
     return results;
 }
+
+// Reconstruct strings from a vector of numericals
+// @param numericalValues The array of numerical values
+// @return An array of string associated with the numbers
+template<typename T>
+vector<string> reconstructStrings(const vector<T> numericalValues)
+{
+    // Loading database
+    std::unordered_map<std::string, unsigned> dictionary = loadDictionary();
+
+    // Creating return array
+    vector<string> output;
+
+    vector<unsigned> numericals;
+
+    // Casting each value to unsigned
+    for (unsigned i = 0; i < numericalValues.size(); i++)
+        numericals.push_back(static_cast<unsigned>(numericalValues[i]));
+
+    // Iterating through each num
+    for (unsigned i = 0; i < numericals.size(); i++)
+    {
+        // Iterating through each element of dictionary
+        for (auto iter : dictionary)
+        {
+            // If numericals match up, then adding mapped string to output
+            if (iter.second == numericals[i])
+            {
+                output.push_back(iter.first);
+                continue;
+            }
+        }
+    }
+
+    return output;
+}
+
 #endif
 /**************************************************************/
 /***************** Video handling functions *******************/
